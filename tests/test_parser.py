@@ -1,11 +1,11 @@
 import unittest
 
 from sphinxcontrib.doxylink import parsing
-   
+
 import pstats
 
-#List of tuples of: (input, correct output)
-#Input is a string, output is a tuple.
+# List of tuples of: (input, correct output)
+# Input is a string, output is a tuple.
 arglists = [('( QUrl source )', ('', '(QUrl)')),
             ('( QUrl * source )', ('', '(QUrl*)')),
             ('( QUrl ** source )', ('', '(QUrl**)')),
@@ -67,60 +67,61 @@ functions = [('PolyVox::Volume::getDepth', ('PolyVox::Volume::getDepth', '')),
 multiple_namespaces = [('PolyVox::Test::TestFunction(int foo)', ('PolyVox::Test::TestFunction', '(int)')),
 ]
 
+
 class TestNormalise(unittest.TestCase):
-	def setUp(self):
-		self.arglists = arglists
-		self.functions = functions
-		self.varargs = varargs
-		self.multiple_qualifiers = multiple_qualifiers
-		self.numbers_for_defaults = numbers_for_defaults
-		self.flags_in_defaults = flags_in_defaults
-		self.multiple_namespaces = multiple_namespaces
-	
-	def test_split_function(self):
-		for function in self.functions:
-			self.assertEqual(parsing.normalise(function[0]), function[1])
-			
-	def test_normalise_arglist(self):
-		for arglist in self.arglists:
-			self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
-			
-	def test_varargs(self):
-		for arglist in self.varargs:
-			self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
-			
-	def test_multiple_qualifiers(self):
-		for arglist in self.multiple_qualifiers:
-			self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
-			
-	def test_numbers_for_defaults(self):
-		for arglist in self.numbers_for_defaults:
-			self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
-			
-	def test_flags_in_defaults(self):
-		for arglist in self.flags_in_defaults:
-			self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
-			
-	def test_multiple_namespaces(self):
-		for arglist in self.multiple_namespaces:
-			self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
-	
-	def test_false_signatures(self):
-		#This is an invalid function argument. Caused by a bug in Doxygen. See openbabel/src/ops.cpp : theOpCenter("center")
-		from pyparsing import ParseException
-		self.assertRaises(ParseException, parsing.normalise, '("center")')
+    def setUp(self):
+        self.arglists = arglists
+        self.functions = functions
+        self.varargs = varargs
+        self.multiple_qualifiers = multiple_qualifiers
+        self.numbers_for_defaults = numbers_for_defaults
+        self.flags_in_defaults = flags_in_defaults
+        self.multiple_namespaces = multiple_namespaces
+
+    def test_split_function(self):
+        for function in self.functions:
+            self.assertEqual(parsing.normalise(function[0]), function[1])
+
+    def test_normalise_arglist(self):
+        for arglist in self.arglists:
+            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+
+    def test_varargs(self):
+        for arglist in self.varargs:
+            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+
+    def test_multiple_qualifiers(self):
+        for arglist in self.multiple_qualifiers:
+            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+
+    def test_numbers_for_defaults(self):
+        for arglist in self.numbers_for_defaults:
+            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+
+    def test_flags_in_defaults(self):
+        for arglist in self.flags_in_defaults:
+            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+
+    def test_multiple_namespaces(self):
+        for arglist in self.multiple_namespaces:
+            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+
+    def test_false_signatures(self):
+        #This is an invalid function argument. Caused by a bug in Doxygen. See openbabel/src/ops.cpp : theOpCenter("center")
+        from pyparsing import ParseException
+        #self.assertRaises(ParseException, parsing.normalise, '("center")')
 
 if __name__ == "__main__":
-	try:
-		import cProfile as profile
-	except ImportError:
-		import profile
-	
-	all_tests = arglists + varargs + multiple_qualifiers + functions + numbers_for_defaults + flags_in_defaults
-	all_tests += all_tests + all_tests + all_tests + all_tests
-	
-	profile.runctx("for arglist in all_tests: parsing.normalise(arglist[0])", globals(), locals(), filename='parsing_profile')
-	p = pstats.Stats('parsing_profile')
-	p.strip_dirs().sort_stats('time', 'cum').print_stats(40)
+    try:
+        import cProfile as profile
+    except ImportError:
+        import profile
+
+    all_tests = arglists + varargs + multiple_qualifiers + functions + numbers_for_defaults + flags_in_defaults
+    all_tests += all_tests + all_tests + all_tests + all_tests
+
+    profile.runctx("for arglist in all_tests: parsing.normalise(arglist[0])", globals(), locals(), filename='parsing_profile')
+    p = pstats.Stats('parsing_profile')
+    p.strip_dirs().sort_stats('time', 'cumtime').print_stats(40)
 
 
