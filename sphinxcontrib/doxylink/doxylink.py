@@ -3,14 +3,13 @@
 import os
 import xml.etree.ElementTree as ET
 import urllib
-import re
 import itertools
 
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
 from sphinx.util.console import bold, standout
 
-from parsing import normalise, ParseException
+from .parsing import normalise, ParseException
 
 
 def find_url(doc, symbol):
