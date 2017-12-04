@@ -10,7 +10,7 @@ requires = ['Sphinx>=0.6', 'pyparsing']
 setup(
     name='sphinxcontrib-doxylink',
     version='1.4',
-    url='http://packages.python.org/sphinxcontrib-doxylink',
+    url='http://sphinxcontrib-doxylink.readthedocs.io/en/stable/',
     download_url='http://pypi.python.org/pypi/sphinxcontrib-doxylink',
     license='BSD',
     author='Matt Williams',
@@ -31,7 +31,7 @@ setup(
         'Topic :: Utilities',
     ],
     platforms='any',
-    packages=find_packages(),
+    packages=find_packages(exclude=['doc', 'examples', 'html', 'tests']),
     include_package_data=True,
     install_requires=requires,
     namespace_packages=['sphinxcontrib'],
