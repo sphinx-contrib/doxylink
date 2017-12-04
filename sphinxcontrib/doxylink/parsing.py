@@ -154,5 +154,5 @@ def normalise_list(list_of_symbols):
     #normalise_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
     #results = normalise_pool.map(normalise, list_of_symbols)
     #normalise_pool.terminate()
-    results = itertools.imap(normalise, list_of_symbols)
+    results = map(normalise, list_of_symbols)
     return results

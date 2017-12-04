@@ -151,7 +151,7 @@ def parse_tag_file(doc):
             else:
                 mapping[member_symbol] = {'kind' : member.get('kind'), 'file' : join(anchorfile,'#',member.findtext('anchor'))}
 
-    for old_tuple, normalised_tuple in zip(function_list, itertools.imap(normalise, (member_tuple[1] for member_tuple in function_list))):
+    for old_tuple, normalised_tuple in zip(function_list, map(normalise, (member_tuple[1] for member_tuple in function_list))):
         member_symbol = old_tuple[0]
         original_arglist = old_tuple[1]
         kind = old_tuple[2]
@@ -223,7 +223,7 @@ def find_url2(mapping, symbol):
 
     # If there is only one match, return it.
     if len(piecewise_list) is 1:
-        return return_from_mapping(piecewise_list.values()[0], normalised_arglist)
+        return return_from_mapping(list(piecewise_list.values())[0], normalised_arglist)
 
     #print("Still", len(piecewise_list), 'possible matches')
 
@@ -283,10 +283,10 @@ def return_from_mapping(mapping_entry, normalised_arglist=''):
             filename = mapping_entry['arglist'].get(normalised_arglist)
             if not filename: #If we didn't get the filename because it's not in the mapping then we will just return a random one?
                 #TODO return a warning here!
-                filename = mapping_entry['arglist'].values()[0]
+                filename = list(mapping_entry['arglist'].values())[0]
         else:
             # Otherwise just return the first entry (if they don't care they get whatever comes first)
-            filename = mapping_entry['arglist'].values()[0]
+            filename = list(mapping_entry['arglist'].values())[0]
 
         return {'kind' : 'function', 'file' : filename}
     elif mapping_entry.get('arglist'):
@@ -453,7 +453,7 @@ def create_role(app, tag_filename, rootdir):
 
 
 def setup_doxylink_roles(app):
-    for name, [tag_filename, rootdir] in app.config.doxylink.iteritems():
+    for name, [tag_filename, rootdir] in app.config.doxylink.items():
         app.add_role(name, create_role(app, tag_filename, rootdir))
 
 
