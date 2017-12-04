@@ -1,2 +1,1 @@
-from doxylink import *
-
+from .doxylink import *
