@@ -137,9 +137,9 @@ Configuration values
 Bug reports
 -----------
 
-If you find any errors, bugs, crashes etc. then please let me know. You can contact me at ``matt@milliams.com``. If there is a crash please include the backtrace and log returned by Sphinx. If you have a bug, particularly with Doxylink not being able to parse a function, please send the tag file so tat I can reproduce and fix it.
+If you find any errors, bugs, crashes etc. then please raise an issue `on GitHub <https://github.com/sphinx-contrib/doxylink/issues/new>`_. If there is a crash please include the backtrace and log returned by Sphinx. If you have a bug, particularly with Doxylink not being able to parse a function, please send the tag file so tat I can reproduce and fix it.
 
-:requires: Python 2.5
+:requires: Python 3.0
 
 .. todo::
 
@@ -149,4 +149,3 @@ If you find any errors, bugs, crashes etc. then please let me know. You can cont
 
 :copyright: Copyright 2011 by Matt Williams
 :license: BSD, see LICENSE for details.
-
