@@ -1,0 +1,5 @@
+FILE_PATTERNS          = *.h
+EXTRACT_ALL            = YES
+GENERATE_TAGFILE       = my_lib.tag
+GENERATE_LATEX         = NO
+GENERATE_HTML          = NO
