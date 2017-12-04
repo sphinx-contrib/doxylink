@@ -1,3 +1,9 @@
+1.4 (Dec 4, 2017)
+====================
+
+- Add bug fix from Stein Heselmans to force the qualifier to be a single string
+- Remove Python 2 compatibility
+
 1.3 (Sep 13, 2012)
 ====================
 
