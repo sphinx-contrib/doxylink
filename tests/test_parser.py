@@ -43,7 +43,7 @@ arglists = [('( QUrl source )', ('', '(QUrl)')),
             ('(const Matrix4 *const *blendMatrices) const =0', ('', '(const Matrix4* const *) const')),
 ]
 
-varargs = [('(int nb=0,...)', ('','(int, ...)')),
+varargs = [('(int nb=0,...)', ('', '(int, ...)')),
 ]
 
 multiple_qualifiers = [('( QReadWriteLock * readWriteLock, unsigned long time = ULONG_MAX )', ('', '(QReadWriteLock*, unsigned long)')),
@@ -123,5 +123,3 @@ if __name__ == "__main__":
     profile.runctx("for arglist in all_tests: parsing.normalise(arglist[0])", globals(), locals(), filename='parsing_profile')
     p = pstats.Stats('parsing_profile')
     p.strip_dirs().sort_stats('time', 'cumtime').print_stats(40)
-
-

@@ -3,7 +3,6 @@
 import os
 import xml.etree.ElementTree as ET
 import urllib
-import itertools
 
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
@@ -39,7 +38,7 @@ def find_url(doc, symbol):
     matches = []
     for compound in doc.findall('.//compound'):
         if compound.find('name').text == symbol:
-            matches += [{'file':compound.find('filename').text, 'kind':compound.get('kind')}]
+            matches += [{'file': compound.find('filename').text, 'kind': compound.get('kind')}]
 
     if len(matches) > 1:
         pass
@@ -47,14 +46,13 @@ def find_url(doc, symbol):
     if len(matches) == 1:
         return matches[0]
 
-
     # Strip off first namespace bit of the compound name so that 'ArraySizes' can match 'PolyVox::ArraySizes'
     for compound in doc.findall('.//compound'):
         symbol_list = compound.find('name').text.split('::', 1)
         if len(symbol_list) == 2:
             reducedsymbol = symbol_list[1]
             if reducedsymbol == symbol:
-                return {'file':compound.find('filename').text, 'kind':compound.get('kind')}
+                return {'file': compound.find('filename').text, 'kind': compound.get('kind')}
 
     # Now split the symbol by '::'. Find an exact match for the first part and then a member match for the second
     # So PolyVox::Array::operator[] becomes like {namespace: "PolyVox::Array", endsymbol: "operator[]"}
@@ -67,12 +65,12 @@ def find_url(doc, symbol):
                 for member in compound.findall('member'):
                     #If this compound object contains the matching member then return it
                     if member.find('name').text == endsymbol:
-                        return {'file':(member.findtext('anchorfile') or compound.findtext('filename')) + '#' + member.find('anchor').text, 'kind':member.get('kind')}
+                        return {'file': (member.findtext('anchorfile') or compound.findtext('filename')) + '#' + member.find('anchor').text, 'kind': member.get('kind')}
 
     # Then we'll look at unqualified members
     for member in doc.findall('.//member'):
         if member.find('name').text == symbol:
-            return {'file':(member.findtext('anchorfile') or compound.findtext('filename')) + '#' + member.find('anchor').text, 'kind':member.get('kind')}
+            return {'file': (member.findtext('anchorfile') or compound.findtext('filename')) + '#' + member.find('anchor').text, 'kind': member.get('kind')}
 
     return None
 
@@ -119,11 +117,11 @@ def parse_tag_file(doc):
     """
 
     mapping = {}
-    function_list = [] # This is a list of function to be parsed and inserted into mapping at the end of the function.
+    function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
     for compound in doc.findall("./compound"):
         compound_kind = compound.get('kind')
-        if compound_kind != 'namespace' and compound_kind != 'class' and compound_kind!= 'struct' and compound_kind != 'file':
-            continue # Skip everything that isn't a namespace, class, struct or file
+        if compound_kind != 'namespace' and compound_kind != 'class' and compound_kind != 'struct' and compound_kind != 'file':
+            continue  # Skip everything that isn't a namespace, class, struct or file
 
         compound_name = compound.findtext('name')
         compound_filename = compound.findtext('filename')
@@ -135,7 +133,7 @@ def parse_tag_file(doc):
             compound_filename = join(compound_filename, '.html')
 
         # If it's a compound we can simply add it
-        mapping[compound_name] = {'kind' : compound_kind, 'file' : compound_filename}
+        mapping[compound_name] = {'kind': compound_kind, 'file': compound_filename}
 
         for member in compound.findall('member'):
 
@@ -144,12 +142,12 @@ def parse_tag_file(doc):
             anchorfile = member.findtext('anchorfile') or compound_filename
             member_symbol = join(compound_name, '::', member.findtext('name'))
             member_kind = member.get('kind')
-            arglist_text = member.findtext('./arglist') # If it has an <arglist> then we assume it's a function. Empty <arglist> returns '', not None. Things like typedefs and enums can have empty arglists
+            arglist_text = member.findtext('./arglist')  # If it has an <arglist> then we assume it's a function. Empty <arglist> returns '', not None. Things like typedefs and enums can have empty arglists
 
             if arglist_text and member_kind != 'variable' and member_kind != 'typedef' and member_kind != 'enumeration':
-                function_list.append((member_symbol, arglist_text, member_kind, join(anchorfile,'#',member.findtext('anchor'))))
+                function_list.append((member_symbol, arglist_text, member_kind, join(anchorfile, '#', member.findtext('anchor'))))
             else:
-                mapping[member_symbol] = {'kind' : member.get('kind'), 'file' : join(anchorfile,'#',member.findtext('anchor'))}
+                mapping[member_symbol] = {'kind': member.get('kind'), 'file': join(anchorfile, '#', member.findtext('anchor'))}
 
     for old_tuple, normalised_tuple in zip(function_list, map(normalise, (member_tuple[1] for member_tuple in function_list))):
         member_symbol = old_tuple[0]
@@ -157,11 +155,11 @@ def parse_tag_file(doc):
         kind = old_tuple[2]
         anchor_link = old_tuple[3]
         normalised_arglist = normalised_tuple[1]
-        if normalised_tuple[1] is not None: # This is a 'flag' for a ParseException having happened
+        if normalised_tuple[1] is not None:  # This is a 'flag' for a ParseException having happened
             if mapping.get(member_symbol) and mapping[member_symbol]['kind'] == 'function':
                 mapping[member_symbol]['arglist'][normalised_arglist] = anchor_link
             else:
-                mapping[member_symbol] = {'kind' : kind, 'arglist' : {normalised_arglist : anchor_link}}
+                mapping[member_symbol] = {'kind': kind, 'arglist': {normalised_arglist: anchor_link}}
         else:
             print('Skipping %s %s%s. Error reported from parser was: %s' % (old_tuple[2], old_tuple[0], old_tuple[1], normalised_tuple[0]))
 
@@ -193,7 +191,7 @@ def find_url2(mapping, symbol):
     """
     #print "\n\nSearching for", symbol
     try:
-        symbol, normalised_arglist =  normalise(symbol)
+        symbol, normalised_arglist = normalise(symbol)
     except ParseException as error:
         raise LookupError(error)
     #print symbol, normalised_arglist
@@ -209,7 +207,7 @@ def find_url2(mapping, symbol):
     #endswith_list = {}
     #for item, data in mapping.items():
     #   if item.endswith(symbol):
-            #print symbol + ' : ' + item
+    #       print symbol + ' : ' + item
     #       endswith_list[item] = data
     #       mapping[item]['file']
 
@@ -237,19 +235,19 @@ def find_url2(mapping, symbol):
 
     #print("Still", len(classes_list), 'possible matches')
 
-    # If we exhaused the list by requiring classes, use the list from before the filter.
-    if len(classes_list) == 0:
+    # If we exhausted the list by requiring classes, use the list from before the filter.
+    if not classes_list:
         classes_list = piecewise_list
 
     no_templates_list = find_url_remove_templates(classes_list, symbol)
 
-    if len(no_templates_list) is 1:
+    if len(no_templates_list) == 1:
         return return_from_mapping(no_templates_list.values()[0], normalised_arglist)
 
     #print("Still", len(no_templates_list), 'possible matches')
 
     # If not found by now, just return the first one in the list
-    if len(no_templates_list) != 0:
+    if no_templates_list:
         # TODO return a warning here?
         return return_from_mapping(no_templates_list.values()[0], normalised_arglist)
     # Else return None if the list is empty
@@ -281,17 +279,17 @@ def return_from_mapping(mapping_entry, normalised_arglist=''):
         # If the user has requested a specific function through specifying an arglist then get the right anchor
         if normalised_arglist:
             filename = mapping_entry['arglist'].get(normalised_arglist)
-            if not filename: #If we didn't get the filename because it's not in the mapping then we will just return a random one?
-                #TODO return a warning here!
+            if not filename:  # If we didn't get the filename because it's not in the mapping then we will just return a random one?
+                # TODO return a warning here!
                 filename = list(mapping_entry['arglist'].values())[0]
         else:
             # Otherwise just return the first entry (if they don't care they get whatever comes first)
             filename = list(mapping_entry['arglist'].values())[0]
 
-        return {'kind' : 'function', 'file' : filename}
+        return {'kind': 'function', 'file': filename}
     elif mapping_entry.get('arglist'):
         # This arglist should only be one entry long and that entry should have '' as its key
-        return {'kind' : mapping_entry['kind'], 'file' : mapping_entry['arglist']['']}
+        return {'kind': mapping_entry['kind'], 'file': mapping_entry['arglist']['']}
 
     # If it's not a function, then return it raw
     return mapping_entry
@@ -396,17 +394,17 @@ def create_role(app, tag_filename, rootdir):
             # no cache present at all, initialise it
             app.info('No cache at all, rebuilding...')
             mapping = parse_tag_file(tag_file)
-            app.env.doxylink_cache = { cache_name : {'mapping' : mapping, 'mtime' : os.path.getmtime(tag_filename)}}
+            app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}}
         elif not app.env.doxylink_cache.get(cache_name):
             # Main cache is there but the specific sub-cache for this tag file is not
             app.info('Sub cache is missing, rebuilding...')
             mapping = parse_tag_file(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping' : mapping, 'mtime' : os.path.getmtime(tag_filename)}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
         elif app.env.doxylink_cache[cache_name]['mtime'] < os.path.getmtime(tag_filename):
             # tag file has been modified since sub-cache creation
             app.info('Sub-cache is out of date, rebuilding...')
             mapping = parse_tag_file(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping' : mapping, 'mtime' : os.path.getmtime(tag_filename)}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
         else:
             # The cache is up to date
             app.info('Sub-cache is up-to-date')
@@ -434,7 +432,7 @@ def create_role(app, tag_filename, rootdir):
                 # But otherwise we need to add the relative path of the current document to the root source directory to the link
                 else:
                     relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.current_source))
-                    full_url = join(relative_path_to_docsrc, '/', rootdir, url['file']) #We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
+                    full_url = join(relative_path_to_docsrc, '/', rootdir, url['file'])  # We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
 
                 if url['kind'] == 'function' and app.config.add_function_parentheses and not normalise(title)[1]:
                     title = join(title, '()')

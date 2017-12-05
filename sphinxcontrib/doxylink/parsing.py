@@ -1,10 +1,9 @@
-#import multiprocessing
-import itertools
-
-from pyparsing import Word, Literal, alphas, nums, alphanums, OneOrMore, Optional, SkipTo, ParseException, Group, ZeroOrMore, Suppress, Combine, delimitedList, quotedString, nestedExpr, ParseResults, oneOf, ungroup
+from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Optional,\
+    SkipTo, ParseException, Group, Combine, delimitedList, quotedString,\
+    nestedExpr, ParseResults, oneOf, ungroup
 
 # define punctuation - reuse of expressions helps packratting work better
-LPAR,RPAR,LBRACK,RBRACK,COMMA,EQ = map(Literal,"()[],=")
+LPAR, RPAR, LBRACK, RBRACK, COMMA, EQ = map(Literal, "()[],=")
 
 # Qualifier to go in front of type in the argument list (unsigned const int foo)
 qualifier = OneOrMore(oneOf('const unsigned typename struct enum'))
@@ -17,9 +16,9 @@ def turn_parseresults_to_list(s, loc, toks):
 
 def normalise_templates(toks, isinstance=isinstance, basestring=str):
     s_list = ['<']
-    s_list_append = s_list.append # lookup append func once, instead of many times
+    s_list_append = s_list.append  # lookup append func once, instead of many times
     for tok in toks:
-        if isinstance(tok, basestring): # See if it's a string
+        if isinstance(tok, basestring):  # See if it's a string
             s_list_append(' ' + tok)
         else:
             # If it's not a string
@@ -27,8 +26,9 @@ def normalise_templates(toks, isinstance=isinstance, basestring=str):
     s_list_append(' >')
     return ''.join(s_list)
 
+
 # Skip pairs of brackets.
-angle_bracket_pair = nestedExpr(opener='<',closer='>').setParseAction(turn_parseresults_to_list)
+angle_bracket_pair = nestedExpr(opener='<', closer='>').setParseAction(turn_parseresults_to_list)
 # TODO Fix for nesting brackets
 parentheses_pair = LPAR + SkipTo(RPAR) + RPAR
 square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
@@ -87,16 +87,16 @@ def normalise(symbol):
     # This is a very common signature so we'll make a special case for it. It requires no parsing anyway
     if arglist_input_string.startswith('()'):
         arglist_input_string_no_spaces = arglist_input_string.replace(' override', '').replace(' final', '').replace(' ', '')
-        if arglist_input_string_no_spaces in ('()', '()=0','()=default'):
+        if arglist_input_string_no_spaces in ('()', '()=0', '()=default'):
             return function_name, '()'
-        elif arglist_input_string_no_spaces in ('()const','()const=0'):
+        elif arglist_input_string_no_spaces in ('()const', '()const=0'):
             return function_name, '() const'
 
     # By now we're left with something like "(blah, blah)", "(blah, blah) const" or "(blah, blah) const =0"
     try:
         closing_bracket_location = arglist_input_string.rindex(')')
-        arglist_suffix = arglist_input_string[closing_bracket_location+1:]
-        arglist_input_string = arglist_input_string[:closing_bracket_location+1]
+        arglist_suffix = arglist_input_string[closing_bracket_location + 1:]
+        arglist_input_string = arglist_input_string[:closing_bracket_location + 1]
     except ValueError:
         # This shouldn't happen.
         print('Could not find closing bracket in %s' % arglist_input_string)
@@ -118,7 +118,7 @@ def normalise(symbol):
             # Here is where we build up our normalised form of the argument
             argument_string_list = ['']
             if arg.qualifier:
-                argument_string_list.append(''.join((arg.qualifier,' ')))
+                argument_string_list.append(''.join((arg.qualifier, ' ')))
             argument_string_list.append(arg.input_type)
 
             # Functions can have a funny combination of *, & and const between the type and the name so build up a list of theose here:
