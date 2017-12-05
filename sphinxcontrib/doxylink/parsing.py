@@ -77,7 +77,7 @@ def normalise(symbol):
 
     try:
         bracket_location = symbol.index('(')
-        #S plit the input string into everything before the opening bracket and everything else
+        # Split the input string into everything before the opening bracket and everything else
         function_name = symbol[:bracket_location]
         arglist_input_string = symbol[bracket_location:]
     except ValueError:
