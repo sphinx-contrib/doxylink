@@ -18,7 +18,6 @@ setup(
     description='Sphinx extension for linking to Doxygen documentation.',
     long_description=long_desc,
     keywords=['sphinx', 'doxygen', 'documentation', 'c++'],
-    zip_safe=False,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
@@ -30,10 +29,8 @@ setup(
         'Topic :: Documentation',
         'Topic :: Utilities',
     ],
-    platforms='any',
     packages=find_packages(exclude=['doc', 'examples', 'html', 'tests']),
-    include_package_data=True,
     install_requires=requires,
+    python_requires='~=3.0',
     namespace_packages=['sphinxcontrib'],
-    test_suite="tests",
 )
