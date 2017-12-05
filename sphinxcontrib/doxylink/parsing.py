@@ -86,9 +86,10 @@ def normalise(symbol):
 
     # This is a very common signature so we'll make a special case for it. It requires no parsing anyway
     if arglist_input_string.startswith('()'):
-        if arglist_input_string in ('()', '()=0'):
-            return function_name, arglist_input_string
-        elif arglist_input_string in ('() const ', '() const', '() const =0'):
+        arglist_input_string_no_spaces = arglist_input_string.replace(' override', '').replace(' final', '').replace(' ', '')
+        if arglist_input_string_no_spaces in ('()', '()=0','()=default'):
+            return function_name, '()'
+        elif arglist_input_string_no_spaces in ('()const','()const=0'):
             return function_name, '() const'
 
     # By now we're left with something like "(blah, blah)", "(blah, blah) const" or "(blah, blah) const =0"
