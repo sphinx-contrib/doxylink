@@ -16,13 +16,5 @@ This extension can be installed from the Python Package Index::
 
    pip install sphinxcontrib-doxylink
 
-Alternatively, you can clone the sphinx-contrib_ repository from BitBucket,
-and install the extension directly from the repository::
-
-   hg clone http://bitbucket.org/birkenfeld/sphinx-contrib
-   cd sphinx-contrib/doxylink
-   python setup.py install
-
-.. _`Sphinx`: http://sphinx.pocoo.org/latest
-.. _`sphinx-contrib`: http://bitbucket.org/birkenfeld/sphinx-contrib
-.. _`documentation`: http://packages.python.org/sphinxcontrib-doxylink
+.. _`Sphinx`: http://www.sphinx-doc.org
+.. _`documentation`: http://sphinxcontrib-doxylink.readthedocs.io/en/stable/
