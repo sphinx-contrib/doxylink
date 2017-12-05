@@ -14,11 +14,11 @@ def turn_parseresults_to_list(s, loc, toks):
     return ParseResults(normalise_templates(toks[0].asList()))
 
 
-def normalise_templates(toks, isinstance=isinstance, basestring=str):
+def normalise_templates(toks):
     s_list = ['<']
     s_list_append = s_list.append  # lookup append func once, instead of many times
     for tok in toks:
-        if isinstance(tok, basestring):  # See if it's a string
+        if isinstance(tok, str):  # See if it's a string
             s_list_append(' ' + tok)
         else:
             # If it's not a string
@@ -149,11 +149,3 @@ def normalise(symbol):
 
     # TODO Maybe this should raise an exception?
     return None
-
-
-def normalise_list(list_of_symbols):
-    #normalise_pool = multiprocessing.Pool(multiprocessing.cpu_count() * 2)
-    #results = normalise_pool.map(normalise, list_of_symbols)
-    #normalise_pool.terminate()
-    results = map(normalise, list_of_symbols)
-    return results
