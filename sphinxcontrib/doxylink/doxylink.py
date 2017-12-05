@@ -118,9 +118,9 @@ def parse_tag_file(doc):
 
     mapping = {}
     function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
-    for compound in doc.findall("./compound"):
+    for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
-        if compound_kind != 'namespace' and compound_kind != 'class' and compound_kind != 'struct' and compound_kind != 'file':
+        if compound_kind not in {'namespace', 'class', 'struct', 'file'}:
             continue  # Skip everything that isn't a namespace, class, struct or file
 
         compound_name = compound.findtext('name')
@@ -130,7 +130,7 @@ def parse_tag_file(doc):
         # Doxygen doesn't seem to include the file extension to <compound kind="file"><filename> entries
         # If it's a 'file' type, check if it _does_ have an extension, if not append '.html'
         if compound_kind == 'file' and not os.path.splitext(compound_filename)[1]:
-            compound_filename = join(compound_filename, '.html')
+            compound_filename = compound_filename + '.html'
 
         # If it's a compound we can simply add it
         mapping[compound_name] = {'kind': compound_kind, 'file': compound_filename}
@@ -140,30 +140,29 @@ def parse_tag_file(doc):
             # If the member doesn't have an <anchorfile> element, use the parent compounds <filename> instead
             # This is the way it is in the qt.tag and is perhaps an artefact of old Doxygen
             anchorfile = member.findtext('anchorfile') or compound_filename
-            member_symbol = join(compound_name, '::', member.findtext('name'))
+            member_symbol = compound_name + '::' + member.findtext('name')
             member_kind = member.get('kind')
             arglist_text = member.findtext('./arglist')  # If it has an <arglist> then we assume it's a function. Empty <arglist> returns '', not None. Things like typedefs and enums can have empty arglists
 
-            if arglist_text and member_kind != 'variable' and member_kind != 'typedef' and member_kind != 'enumeration':
+            if arglist_text and member_kind not in {'variable', 'typedef', 'enumeration'}:
                 function_list.append((member_symbol, arglist_text, member_kind, join(anchorfile, '#', member.findtext('anchor'))))
             else:
                 mapping[member_symbol] = {'kind': member.get('kind'), 'file': join(anchorfile, '#', member.findtext('anchor'))}
 
-    for old_tuple, normalised_tuple in zip(function_list, map(normalise, (member_tuple[1] for member_tuple in function_list))):
-        member_symbol = old_tuple[0]
-        original_arglist = old_tuple[1]
-        kind = old_tuple[2]
-        anchor_link = old_tuple[3]
+    for f in function_list:
+        member_symbol = f[0]
+        kind = f[2]
+        anchor_link = f[3]
+        normalised_tuple = normalise(f[0] + f[1])
         normalised_arglist = normalised_tuple[1]
-        if normalised_tuple[1] is not None:  # This is a 'flag' for a ParseException having happened
+        if normalised_arglist is not None:  # This is a 'flag' for a ParseException having happened
             if mapping.get(member_symbol) and mapping[member_symbol]['kind'] == 'function':
                 mapping[member_symbol]['arglist'][normalised_arglist] = anchor_link
             else:
                 mapping[member_symbol] = {'kind': kind, 'arglist': {normalised_arglist: anchor_link}}
         else:
-            print('Skipping %s %s%s. Error reported from parser was: %s' % (old_tuple[2], old_tuple[0], old_tuple[1], normalised_tuple[0]))
+            print('Skipping %s %s%s. Error reported from parser was: %s' % (f[2], f[0], f[1], normalised_tuple[0]))
 
-    #from pprint import pprint; pprint(mapping)
     return mapping
 
 
@@ -257,15 +256,20 @@ def find_url2(mapping, symbol):
 
 def return_from_mapping(mapping_entry, normalised_arglist=''):
     """
-    Return a mapping to a single URL in the form. This is needed since mapping entries for functions are more complicated due to function overriding.
+    Return a mapping to a single URL in the form.
+    This is needed since mapping entries for functions are more complicated due to function overriding.
 
-    If the mapping to be returned is not a function, this will simply return the mapping entry intact. If the entry is a function it will attempt to get the right version based on the function signature.
+    If the mapping to be returned is not a function, this will simply return the mapping entry intact.
+    If the entry is a function it will attempt to get the right version based on the function signature.
 
     :Parameters:
         mapping_entry : dict
-            should be a single entry from the large mapping file corresponding to a single symbol. If the symbol is a function, then ``mappingentry['arglist']`` will be a dictionary mapping normalised signatures to URLs
+            should be a single entry from the large mapping file corresponding to a single symbol.
+            If the symbol is a function, then ``mappingentry['arglist']`` will be a dictionary mapping normalised signatures to URLs
         normalised_arglist : string
-            the normalised form of the arglist that the user has requested. This can be empty in which case the function will return just the first element of ``mappingentry['arglist']``. This parameter is ignored if ``mappingentry['kind'] != 'function'``
+            the normalised form of the arglist that the user has requested.
+            This can be empty in which case the function will return just the first element of ``mappingentry['arglist']``.
+            This parameter is ignored if ``mappingentry['kind'] != 'function'``
 
     :return: dictionary something like:
 
@@ -408,9 +412,9 @@ def create_role(app, tag_filename, rootdir):
         else:
             # The cache is up to date
             app.info('Sub-cache is up-to-date')
-    except IOError:
+    except FileNotFoundError:
         tag_file = None
-        app.warn(standout('Could not open tag file %s. Make sure your `doxylink` config variable is set correctly.' % tag_filename))
+        app.warn(standout('Could not find tag file %s. Make sure your `doxylink` config variable is set correctly.' % tag_filename))
 
     def find_doxygen_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
         text = utils.unescape(text)
@@ -451,7 +455,7 @@ def create_role(app, tag_filename, rootdir):
 
 
 def setup_doxylink_roles(app):
-    for name, [tag_filename, rootdir] in app.config.doxylink.items():
+    for name, (tag_filename, rootdir) in app.config.doxylink.items():
         app.add_role(name, create_role(app, tag_filename, rootdir))
 
 
