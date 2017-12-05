@@ -1,4 +1,4 @@
-import unittest
+import pytest
 
 from sphinxcontrib.doxylink import parsing
 
@@ -68,48 +68,46 @@ multiple_namespaces = [('PolyVox::Test::TestFunction(int foo)', ('PolyVox::Test:
 ]
 
 
-class TestNormalise(unittest.TestCase):
-    def setUp(self):
-        self.arglists = arglists
-        self.functions = functions
-        self.varargs = varargs
-        self.multiple_qualifiers = multiple_qualifiers
-        self.numbers_for_defaults = numbers_for_defaults
-        self.flags_in_defaults = flags_in_defaults
-        self.multiple_namespaces = multiple_namespaces
+@pytest.mark.parametrize('test_input, expected', functions)
+def test_split_function(test_input, expected):
+    assert parsing.normalise(test_input) == expected
 
-    def test_split_function(self):
-        for function in self.functions:
-            self.assertEqual(parsing.normalise(function[0]), function[1])
 
-    def test_normalise_arglist(self):
-        for arglist in self.arglists:
-            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+@pytest.mark.parametrize('test_input, expected', arglists)
+def test_normalise_arglist(test_input, expected):
+    assert parsing.normalise(test_input) == expected
 
-    def test_varargs(self):
-        for arglist in self.varargs:
-            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
 
-    def test_multiple_qualifiers(self):
-        for arglist in self.multiple_qualifiers:
-            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+@pytest.mark.parametrize('test_input, expected', varargs)
+def test_varargs(test_input, expected):
+    assert parsing.normalise(test_input) == expected
 
-    def test_numbers_for_defaults(self):
-        for arglist in self.numbers_for_defaults:
-            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
 
-    def test_flags_in_defaults(self):
-        for arglist in self.flags_in_defaults:
-            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
+@pytest.mark.parametrize('test_input, expected', multiple_qualifiers)
+def test_multiple_qualifiers(test_input, expected):
+    assert parsing.normalise(test_input) == expected
 
-    def test_multiple_namespaces(self):
-        for arglist in self.multiple_namespaces:
-            self.assertEqual(parsing.normalise(arglist[0]), arglist[1])
 
-    def test_false_signatures(self):
-        #This is an invalid function argument. Caused by a bug in Doxygen. See openbabel/src/ops.cpp : theOpCenter("center")
-        from pyparsing import ParseException
-        #self.assertRaises(ParseException, parsing.normalise, '("center")')
+@pytest.mark.parametrize('test_input, expected', numbers_for_defaults)
+def test_numbers_for_defaults(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', flags_in_defaults)
+def test_flags_in_defaults(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', multiple_namespaces)
+def test_multiple_namespaces(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+def test_false_signatures():
+    #This is an invalid function argument. Caused by a bug in Doxygen. See openbabel/src/ops.cpp : theOpCenter("center")
+    from pyparsing import ParseException
+    #assertRaises(ParseException, parsing.normalise, '("center")')
+
 
 if __name__ == "__main__":
     try:
