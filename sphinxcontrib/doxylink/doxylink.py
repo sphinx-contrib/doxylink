@@ -153,15 +153,16 @@ def parse_tag_file(doc):
         member_symbol = f[0]
         kind = f[2]
         anchor_link = f[3]
-        normalised_tuple = normalise(f[0] + f[1])
-        normalised_arglist = normalised_tuple[1]
-        if normalised_arglist is not None:  # This is a 'flag' for a ParseException having happened
+        try:
+            normalised_tuple = normalise(f[0] + f[1])
+        except ParseException as e:
+            print('Skipping %s %s%s. Error reported from parser was: %s' % (f[2], f[0], f[1], e))
+        else:
+            normalised_arglist = normalised_tuple[1]
             if mapping.get(member_symbol) and mapping[member_symbol]['kind'] == 'function':
                 mapping[member_symbol]['arglist'][normalised_arglist] = anchor_link
             else:
                 mapping[member_symbol] = {'kind': kind, 'arglist': {normalised_arglist: anchor_link}}
-        else:
-            print('Skipping %s %s%s. Error reported from parser was: %s' % (f[2], f[0], f[1], normalised_tuple[0]))
 
     return mapping
 

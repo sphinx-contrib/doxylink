@@ -106,10 +106,8 @@ def normalise(symbol: str) -> Tuple[str, str]:
 
     try:
         result = arglist.parseString(arglist_input_string)
-    except ParseException as error:
-        #print symbol
-        #print pe
-        return str(error), None
+    except ParseException:
+        raise
     else:
         # Will be a list or normalised string arguments
         # e.g. ['OBMol&', 'vector< int >&', 'OBBitVec&', 'OBBitVec&', 'int', 'int']

@@ -111,9 +111,10 @@ def test_multiple_namespaces(test_input, expected):
 
 
 def test_false_signatures():
-    #This is an invalid function argument. Caused by a bug in Doxygen. See openbabel/src/ops.cpp : theOpCenter("center")
+    # This is an invalid function definition. Caused by a bug in Doxygen. See openbabel/src/ops.cpp : theOpCenter("center")
     from pyparsing import ParseException
-    #assertRaises(ParseException, parsing.normalise, '("center")')
+    with pytest.raises(ParseException):
+        parsing.normalise('("center")')
 
 
 if __name__ == "__main__":
