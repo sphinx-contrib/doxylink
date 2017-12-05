@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Optional,\
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString,\
     nestedExpr, ParseResults, oneOf, ungroup
@@ -63,7 +65,7 @@ argument = Group(argument_type('argument_type') + Optional(input_name) + Optiona
 arglist = LPAR + delimitedList(argument)('arg_list') + Optional(COMMA + '...')('var_args') + RPAR
 
 
-def normalise(symbol):
+def normalise(symbol: str) -> Tuple[str, str]:
     """
     Takes a c++ symbol or function and splits it into symbol and a normalised argument list.
 
