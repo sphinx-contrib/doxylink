@@ -42,7 +42,7 @@ def examples_tag_file():
             recreate = False
 
     if recreate:
-        subprocess.run('doxygen', cwd=basedir)
+        subprocess.call('doxygen', cwd=basedir)
 
     return tagfile
 
