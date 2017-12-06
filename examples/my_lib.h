@@ -1,10 +1,17 @@
+#include <string>
+
 /**
  * Example documented function
  */
-int my_func()
-{
-    return 0;
-}
+int my_func();
+
+int my_func(int foo);
+
+int my_func(float);
+
+int my_func(std::string a, int b);
+
+int my_func(int b, std::string a);
 
 namespace my_namespace
 {
@@ -13,3 +20,9 @@ namespace my_namespace
         MyClass();
     };
 }
+
+/// This class has the same name but is a different class
+class MyClass
+{
+    MyClass();
+};

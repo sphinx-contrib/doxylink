@@ -34,8 +34,6 @@ def examples_tag_file():
     else:
         latest_file_changed = max([datetime.datetime.fromtimestamp(os.stat(f).st_mtime) for f in matches])
         tagfile_changed = datetime.datetime.fromtimestamp(os.stat(tagfile).st_mtime)
-        print(latest_file_changed)
-        print(tagfile_changed)
         if latest_file_changed > tagfile_changed:
             recreate = True
         else:
@@ -47,7 +45,7 @@ def examples_tag_file():
     return tagfile
 
 
-def test_function_present(examples_tag_file):
+def test_parse_tag_file(examples_tag_file):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
@@ -57,5 +55,38 @@ def test_function_present(examples_tag_file):
     assert 'my_lib.h' in mapping
     assert 'my_lib.h::my_func' in mapping
     assert '()' in mapping['my_lib.h::my_func']['arglist']
+    assert len(mapping['my_lib.h::my_func']['arglist']) == 5
     assert 'my_namespace' in mapping
     assert 'my_namespace::MyClass' in mapping
+
+
+def test_find_url_piecewise(examples_tag_file):
+    tag_file = ET.parse(examples_tag_file)
+    mapping = doxylink.parse_tag_file(tag_file)
+
+    assert 'my_namespace' in doxylink.find_url_piecewise(mapping, 'my_namespace')
+    assert 'my_namespace::MyClass' in doxylink.find_url_piecewise(mapping, 'my_namespace::MyClass')
+    assert 'my_namespace::MyClass' in doxylink.find_url_piecewise(mapping, 'MyClass')
+    assert 'MyClass' in doxylink.find_url_piecewise(mapping, 'MyClass')
+
+    assert len(doxylink.find_url_piecewise(mapping, 'MyClass')) == 2
+
+
+def test_return_from_mapping(examples_tag_file):
+    tag_file = ET.parse(examples_tag_file)
+    mapping = doxylink.parse_tag_file(tag_file)
+
+    mapping_entry = mapping['my_lib.h::my_func']
+    assert doxylink.return_from_mapping(mapping_entry)
+    assert doxylink.return_from_mapping(mapping_entry, '()')
+    assert doxylink.return_from_mapping(mapping_entry, '(int)')
+    assert doxylink.return_from_mapping(mapping_entry, '(float)')
+    with pytest.raises(LookupError):
+        print(doxylink.return_from_mapping(mapping_entry, '(double)'))
+
+
+def test_find_url2(examples_tag_file):
+    tag_file = ET.parse(examples_tag_file)
+    mapping = doxylink.parse_tag_file(tag_file)
+
+    assert doxylink.find_url2(mapping, 'MyClass')['file'] == 'classMyClass.html'
