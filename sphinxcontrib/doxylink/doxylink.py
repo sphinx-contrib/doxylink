@@ -220,7 +220,7 @@ def find_url2(mapping, symbol: str) -> dict:
     piecewise_list = find_url_piecewise(mapping, symbol)
 
     # If there is only one match, return it.
-    if len(piecewise_list) is 1:
+    if len(piecewise_list) == 1:
         return return_from_mapping(list(piecewise_list.values())[0], normalised_arglist)
 
     #print("Still", len(piecewise_list), 'possible matches')
