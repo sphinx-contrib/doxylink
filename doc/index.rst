@@ -139,7 +139,7 @@ Bug reports
 
 If you find any errors, bugs, crashes etc. then please raise an issue `on GitHub <https://github.com/sphinx-contrib/doxylink/issues/new>`_. If there is a crash please include the backtrace and log returned by Sphinx. If you have a bug, particularly with Doxylink not being able to parse a function, please send the tag file so tat I can reproduce and fix it.
 
-:requires: Python 3.0
+:requires: Python 3.4
 
 .. todo::
 
