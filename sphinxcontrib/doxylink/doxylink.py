@@ -167,7 +167,7 @@ def parse_tag_file(doc):
     return mapping
 
 
-def find_url2(mapping, symbol):
+def find_url2(mapping, symbol: str) -> dict:
     """
     Return the URL for a given symbol.
 
@@ -255,7 +255,7 @@ def find_url2(mapping, symbol):
         LookupError('Could not find a match')
 
 
-def return_from_mapping(mapping_entry, normalised_arglist=''):
+def return_from_mapping(mapping_entry: dict, normalised_arglist: str='') -> dict:
     """
     Return a mapping to a single URL in the form.
     This is needed since mapping entries for functions are more complicated due to function overriding.
@@ -300,7 +300,7 @@ def return_from_mapping(mapping_entry, normalised_arglist=''):
     return mapping_entry
 
 
-def find_url_piecewise(mapping, symbol):
+def find_url_piecewise(mapping: dict, symbol: str) -> dict:
     """
     Match the requested symbol reverse piecewise (split on ``::``) against the tag names to ensure they match exactly (modulo ambiguity)
     So, if in the mapping there is ``PolyVox::Volume::FloatVolume`` and ``PolyVox::Volume`` they would be split into:
