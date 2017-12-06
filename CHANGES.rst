@@ -1,3 +1,8 @@
+1.5 (Dec 7, 2017)
+====================
+
+- Fix #6: convert dict_values to list before indexing [Stein Heselmans]
+
 1.4 (Dec 4, 2017)
 ====================
 

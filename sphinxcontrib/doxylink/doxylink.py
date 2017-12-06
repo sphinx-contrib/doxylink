@@ -231,7 +231,7 @@ def find_url2(mapping, symbol):
 
     # If there is only one by here we return it.
     if len(classes_list) is 1:
-        return classes_list.values()[0]
+        return list(classes_list.values())[0]
 
     #print("Still", len(classes_list), 'possible matches')
 
@@ -242,14 +242,14 @@ def find_url2(mapping, symbol):
     no_templates_list = find_url_remove_templates(classes_list, symbol)
 
     if len(no_templates_list) == 1:
-        return return_from_mapping(no_templates_list.values()[0], normalised_arglist)
+        return return_from_mapping(list(no_templates_list.values())[0], normalised_arglist)
 
     #print("Still", len(no_templates_list), 'possible matches')
 
     # If not found by now, just return the first one in the list
     if no_templates_list:
         # TODO return a warning here?
-        return return_from_mapping(no_templates_list.values()[0], normalised_arglist)
+        return return_from_mapping(list(no_templates_list.values())[0], normalised_arglist)
     # Else return None if the list is empty
     else:
         LookupError('Could not find a match')

@@ -3,3 +3,4 @@ parsing_profile
 *.pyc
 sphinxcontrib_doxylink.egg-info/
 dist/
+build/
