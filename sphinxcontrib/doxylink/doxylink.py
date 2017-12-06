@@ -246,11 +246,11 @@ def find_url2(mapping, symbol: str) -> dict:
 
     #print("Still", len(no_templates_list), 'possible matches')
 
-    # If not found by now, just return the first one in the list
+    # If not found by now, return the shortest match, assuming that's the most specific
     if no_templates_list:
         # TODO return a warning here?
-        return return_from_mapping(list(no_templates_list.values())[0], normalised_arglist)
-    # Else return None if the list is empty
+        shortest_match = min(no_templates_list.keys(), key=len)
+        return return_from_mapping(no_templates_list[shortest_match], normalised_arglist)
     else:
         LookupError('Could not find a match')
 
