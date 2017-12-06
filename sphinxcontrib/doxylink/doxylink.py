@@ -283,10 +283,10 @@ def return_from_mapping(mapping_entry: dict, normalised_arglist: str='') -> dict
     if mapping_entry['kind'] == 'function':
         # If the user has requested a specific function through specifying an arglist then get the right anchor
         if normalised_arglist:
-            filename = mapping_entry['arglist'].get(normalised_arglist)
-            if not filename:  # If we didn't get the filename because it's not in the mapping then we will just return a random one?
-                # TODO return a warning here!
-                filename = list(mapping_entry['arglist'].values())[0]
+            try:
+                filename = mapping_entry['arglist'][normalised_arglist]
+            except KeyError:
+                raise LookupError('Argument list match not found')
         else:
             # Otherwise just return the first entry (if they don't care they get whatever comes first)
             filename = list(mapping_entry['arglist'].values())[0]
