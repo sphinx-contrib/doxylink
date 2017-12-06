@@ -50,6 +50,12 @@ def examples_tag_file():
 def test_function_present(examples_tag_file):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
+
+    from pprint import pprint
+    pprint(mapping)
+
     assert 'my_lib.h' in mapping
     assert 'my_lib.h::my_func' in mapping
     assert '()' in mapping['my_lib.h::my_func']['arglist']
+    assert 'my_namespace' in mapping
+    assert 'my_namespace::MyClass' in mapping

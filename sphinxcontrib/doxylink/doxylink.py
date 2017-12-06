@@ -230,7 +230,7 @@ def find_url2(mapping, symbol):
     classes_list = find_url_classes(piecewise_list, symbol)
 
     # If there is only one by here we return it.
-    if len(classes_list) is 1:
+    if len(classes_list) == 1:
         return list(classes_list.values())[0]
 
     #print("Still", len(classes_list), 'possible matches')
