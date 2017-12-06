@@ -266,11 +266,11 @@ def return_from_mapping(mapping_entry: dict, normalised_arglist: str='') -> dict
     :Parameters:
         mapping_entry : dict
             should be a single entry from the large mapping file corresponding to a single symbol.
-            If the symbol is a function, then ``mappingentry['arglist']`` will be a dictionary mapping normalised signatures to URLs
+            If the symbol is a function, then ``mapping_entry['arglist']`` will be a dictionary mapping normalised signatures to URLs
         normalised_arglist : string
             the normalised form of the arglist that the user has requested.
-            This can be empty in which case the function will return just the first element of ``mappingentry['arglist']``.
-            This parameter is ignored if ``mappingentry['kind'] != 'function'``
+            This can be empty in which case the function will return just the first element of ``mapping_entry['arglist']``.
+            This parameter is ignored if ``mapping_entry['kind'] != 'function'``
 
     :return: dictionary something like:
 
