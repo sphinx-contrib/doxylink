@@ -1,3 +1,8 @@
+()
+==
+
+- Add possibility to link to #DEFINE macros
+
 1.5 (Dec 9, 2017)
 ====================
 

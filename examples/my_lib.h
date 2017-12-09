@@ -26,3 +26,6 @@ class MyClass
 {
     MyClass();
 };
+
+/// A simple macro
+#define MY_MACRO(x) foo(x)

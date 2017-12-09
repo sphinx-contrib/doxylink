@@ -58,6 +58,7 @@ def test_parse_tag_file(examples_tag_file):
     assert len(mapping['my_lib.h::my_func']['arglist']) == 5
     assert 'my_namespace' in mapping
     assert 'my_namespace::MyClass' in mapping
+    assert 'my_lib.h::MY_MACRO' in mapping
 
 
 def test_find_url_piecewise(examples_tag_file):
@@ -70,6 +71,9 @@ def test_find_url_piecewise(examples_tag_file):
     assert 'MyClass' in doxylink.find_url_piecewise(mapping, 'MyClass')
 
     assert len(doxylink.find_url_piecewise(mapping, 'MyClass')) == 2
+
+    assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'my_lib.h::MY_MACRO')
+    assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'MY_MACRO')
 
 
 def test_return_from_mapping(examples_tag_file):

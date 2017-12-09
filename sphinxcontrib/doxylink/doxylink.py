@@ -120,7 +120,7 @@ def parse_tag_file(doc):
     function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
-        if compound_kind not in {'namespace', 'class', 'struct', 'file'}:
+        if compound_kind not in {'namespace', 'class', 'struct', 'file', 'define'}:
             continue  # Skip everything that isn't a namespace, class, struct or file
 
         compound_name = compound.findtext('name')
