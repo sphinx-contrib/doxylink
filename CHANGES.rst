@@ -1,7 +1,8 @@
-1.5 (Dec 7, 2017)
+1.5 (Dec 9, 2017)
 ====================
 
 - Fix #6: convert dict_values to list before indexing [Stein Heselmans]
+- fix parsing for C++11 functions with specifiers () final, () override or () = default [Elco Jacobs]
 
 1.4 (Dec 4, 2017)
 ====================
