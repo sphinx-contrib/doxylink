@@ -2,7 +2,7 @@
 
 import os
 import xml.etree.ElementTree as ET
-import urllib
+import urllib.parse
 
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
