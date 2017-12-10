@@ -20,7 +20,10 @@ namespace my_namespace
 {
     class MyClass
     {
+       public:
         MyClass();
+
+        double my_method();
     };
 }
 
