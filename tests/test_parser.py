@@ -114,6 +114,10 @@ multiple_namespaces = [
     ('PolyVox::Test::TestFunction(int foo)', ('PolyVox::Test::TestFunction', '(int)')),
 ]
 
+keywords_almost_in_typenames = [
+    ('evolve(quantumdata::StateVector &, const structure::QuantumSystem &, const evolution::Pars &)', ('evolve', '(quantumdata::StateVector&, const structure::QuantumSystem&, const evolution::Pars&)')),
+]
+
 
 @pytest.mark.parametrize('test_input, expected', functions)
 def test_split_function(test_input, expected):
@@ -152,6 +156,11 @@ def test_flags_in_defaults(test_input, expected):
 
 @pytest.mark.parametrize('test_input, expected', multiple_namespaces)
 def test_multiple_namespaces(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', keywords_almost_in_typenames)
+def test_keywords_almost_in_typenames(test_input, expected):
     assert parsing.normalise(test_input) == expected
 
 

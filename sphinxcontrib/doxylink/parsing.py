@@ -8,7 +8,7 @@ from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Optional,\
 LPAR, RPAR, LBRACK, RBRACK, COMMA, EQ = map(Literal, "()[],=")
 
 # Qualifier to go in front of type in the argument list (unsigned const int foo)
-qualifier = OneOrMore(oneOf('const typename struct enum'))
+qualifier = OneOrMore(Keyword('const') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
 qualifier = ungroup(qualifier.addParseAction(' '.join))
 
 
