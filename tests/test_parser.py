@@ -49,7 +49,43 @@ varargs = [
 ]
 
 multiple_qualifiers = [
+    ('(const unsigned short int &time)', ('', '(const unsigned short int&)')),
+    ('(const unsigned long long int &value)', ('', '(const unsigned long long int&)')),
+    ('(const int &nx, const long long *pixels=NULL)', ('', '(const int&, const long long*)')),
+    ('(const int &naxis, const int *naxes, const long long *pixels=NULL)', ('', '(const int&, const int*, const long long*)')),
     ('( QReadWriteLock * readWriteLock, unsigned long time = ULONG_MAX )', ('', '(QReadWriteLock*, unsigned long)')),
+]
+
+fundamental_types = [
+    ('(bool)', ('', '(bool)')),
+    ('(signed char)', ('', '(signed char)')),
+    ('(unsigned char)', ('', '(unsigned char)')),
+    ('(short)', ('', '(short)')),
+    ('(short int)', ('', '(short int)')),
+    ('(signed short)', ('', '(signed short)')),
+    ('(signed short int)', ('', '(signed short int)')),
+    ('(unsigned short)', ('', '(unsigned short)')),
+    ('(unsigned short int)', ('', '(unsigned short int)')),
+    ('(int)', ('', '(int)')),
+    ('(signed)', ('', '(signed)')),
+    ('(signed int)', ('', '(signed int)')),
+    ('(unsigned)', ('', '(unsigned)')),
+    ('(unsigned int)', ('', '(unsigned int)')),
+    ('(long)', ('', '(long)')),
+    ('(long int)', ('', '(long int)')),
+    ('(signed long)', ('', '(signed long)')),
+    ('(signed long int)', ('', '(signed long int)')),
+    ('(unsigned long)', ('', '(unsigned long)')),
+    ('(unsigned long int)', ('', '(unsigned long int)')),
+    ('(long long)', ('', '(long long)')),
+    ('(long long int)', ('', '(long long int)')),
+    ('(signed long long)', ('', '(signed long long)')),
+    ('(signed long long int)', ('', '(signed long long int)')),
+    ('(unsigned long long)', ('', '(unsigned long long)')),
+    ('(unsigned long long int)', ('', '(unsigned long long int)')),
+    ('(float)', ('', '(float)')),
+    ('(double)', ('', '(double)')),
+    ('(long double)', ('', '(long double)')),
 ]
 
 numbers_for_defaults = [
@@ -92,6 +128,11 @@ def test_varargs(test_input, expected):
 
 @pytest.mark.parametrize('test_input, expected', multiple_qualifiers)
 def test_multiple_qualifiers(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', fundamental_types)
+def test_fundamental_types(test_input, expected):
     assert parsing.normalise(test_input) == expected
 
 

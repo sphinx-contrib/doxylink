@@ -2,6 +2,7 @@
 ==
 
 - Add possibility to link to #DEFINE macros
+- Do a better job of parsing compound fundamental types
 
 1.5 (Dec 9, 2017)
 ====================

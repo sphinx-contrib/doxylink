@@ -2,13 +2,13 @@ from typing import Tuple
 
 from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Optional,\
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString,\
-    nestedExpr, ParseResults, oneOf, ungroup
+    nestedExpr, ParseResults, oneOf, ungroup, Keyword
 
 # define punctuation - reuse of expressions helps packratting work better
 LPAR, RPAR, LBRACK, RBRACK, COMMA, EQ = map(Literal, "()[],=")
 
 # Qualifier to go in front of type in the argument list (unsigned const int foo)
-qualifier = OneOrMore(oneOf('const unsigned typename struct enum'))
+qualifier = OneOrMore(oneOf('const typename struct enum'))
 qualifier = ungroup(qualifier.addParseAction(' '.join))
 
 
@@ -35,9 +35,10 @@ angle_bracket_pair = nestedExpr(opener='<', closer='>').setParseAction(turn_pars
 parentheses_pair = LPAR + SkipTo(RPAR) + RPAR
 square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
 
-# The raw type of the input, i.e. 'int' in (unsigned const int * foo)
 # TODO I guess this should be a delimited list (by '::') of name and angle brackets
-input_type = Combine(Word(alphanums + ':_') + Optional(angle_bracket_pair + Optional(Word(alphanums + ':_'))))
+nonfundamental_input_type = Combine(Word(alphanums + ':_') + Optional(angle_bracket_pair + Optional(Word(alphanums + ':_'))))
+fundamental_input_type = OneOrMore(Keyword('bool') ^ Keyword('short') ^ Keyword('int') ^ Keyword('long') ^ Keyword('signed') ^ Keyword('unsigned') ^ Keyword('char') ^ Keyword('float') ^ Keyword('double'))
+input_type = fundamental_input_type ^ nonfundamental_input_type
 
 # A number. e.g. -1, 3.6 or 5
 number = Word('-.' + nums)
@@ -53,7 +54,7 @@ default_value = Literal('=') + OneOrMore(number | quotedString | input_type | pa
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
 argument_type = Optional(qualifier, default='')("qualifier") + \
-                input_type("input_type") + \
+                input_type('input_type').setParseAction(' '.join) + \
                 Optional(pointer_or_reference, default='')("pointer_or_reference1") + \
                 Optional('const')('const_pointer_or_reference') + \
                 Optional(pointer_or_reference, default='')("pointer_or_reference2")
@@ -121,7 +122,7 @@ def normalise(symbol: str) -> Tuple[str, str]:
                 argument_string_list.append(''.join((arg.qualifier, ' ')))
             argument_string_list.append(arg.input_type)
 
-            # Functions can have a funny combination of *, & and const between the type and the name so build up a list of theose here:
+            # Functions can have a funny combination of *, & and const between the type and the name so build up a list of those here:
             const_pointer_ref_list = []
             const_pointer_ref_list.append(arg.pointer_or_reference1)
             if arg.const_pointer_or_reference:
