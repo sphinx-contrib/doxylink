@@ -46,6 +46,10 @@ arglists = [
 
 varargs = [
     ('(int nb=0,...)', ('', '(int, ...)')),
+    ('printf( const char* format, ... )', ('printf', '(const char*, ...)')),
+    ('fprintf( std::FILE* stream, const char* format, ... )', ('fprintf', '(std::FILE*, const char*, ...)')),
+    ('sprintf( char* buffer, const char* format, ... )', ('sprintf', '(char*, const char*, ...)')),
+    ('snprintf( char* buffer, std::size_t buf_size, const char* format, ... )', ('snprintf', '(char*, std::size_t, const char*, ...)')),
 ]
 
 multiple_qualifiers = [
