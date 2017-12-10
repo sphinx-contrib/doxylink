@@ -418,9 +418,9 @@ def create_role(app, tag_filename, rootdir):
         app.warn(standout('Could not find tag file %s. Make sure your `doxylink` config variable is set correctly.' % tag_filename))
 
     def find_doxygen_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
-        text = utils.unescape(text)
         # from :name:`title <part>`
         has_explicit_title, title, part = split_explicit_title(text)
+        part = utils.unescape(part)
         warning_messages = []
         if tag_file:
             url = find_url(tag_file, part)
