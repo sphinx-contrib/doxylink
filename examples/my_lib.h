@@ -13,6 +13,9 @@ int my_func(std::string a, int b);
 
 int my_func(int b, std::string a);
 
+
+/// \defgroup ClassesGroup A group of the classes
+/// @{
 namespace my_namespace
 {
     class MyClass
@@ -26,6 +29,7 @@ class MyClass
 {
     MyClass();
 };
+/// @}
 
 /// A simple macro
 #define MY_MACRO(x) foo(x)

@@ -59,6 +59,7 @@ def test_parse_tag_file(examples_tag_file):
     assert 'my_namespace' in mapping
     assert 'my_namespace::MyClass' in mapping
     assert 'my_lib.h::MY_MACRO' in mapping
+    assert 'ClassesGroup' in mapping
 
 
 def test_find_url_piecewise(examples_tag_file):
@@ -74,6 +75,8 @@ def test_find_url_piecewise(examples_tag_file):
 
     assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'my_lib.h::MY_MACRO')
     assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'MY_MACRO')
+
+    assert 'ClassesGroup' in doxylink.find_url_piecewise(mapping, 'ClassesGroup')
 
 
 def test_return_from_mapping(examples_tag_file):
