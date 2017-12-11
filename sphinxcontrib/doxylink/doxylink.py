@@ -413,6 +413,11 @@ def create_role(app, tag_filename, rootdir):
             app.info('Sub-cache is out of date, rebuilding...')
             mapping = parse_tag_file(tag_file)
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
+        elif not app.env.doxylink_cache[cache_name].get('version') or app.env.doxylink_cache[cache_name].get('version') != __version__:
+            # sub-cache doesn't have a version or the version doesn't match
+            app.info('Sub-cache schema version doesn\'t match, rebuilding...')
+            mapping = parse_tag_file(tag_file)
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
         else:
             # The cache is up to date
             app.info('Sub-cache is up-to-date')
