@@ -10,6 +10,9 @@ from sphinx.util.console import bold, standout
 
 from .parsing import normalise, ParseException
 
+__version__ = '1.5'
+
+
 
 def find_url(doc, symbol):
     """
