@@ -162,7 +162,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
     return mapping
 
 
-def match_piecewise(candidates: set, symbol: str) -> set:
+def match_piecewise(candidates: set, symbol: str, sep: str='::') -> set:
     """
     Match the requested symbol reverse piecewise (split on ``::``) against the candidates.
     This allows you to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``
@@ -170,14 +170,15 @@ def match_piecewise(candidates: set, symbol: str) -> set:
     Args:
         candidates: set of possible matches for symbol
         symbol: the symbol to match against
+        sep: the separator between identifier elements
 
     Returns:
         set of matches
     """
     piecewise_list = set()
     for item in candidates:
-        split_symbol = symbol.split('::')
-        split_item = item.split('::')
+        split_symbol = symbol.split(sep)
+        split_item = item.split(sep)
 
         split_symbol.reverse()
         split_item.reverse()
