@@ -152,16 +152,12 @@ def parse_tag_file(doc):
             else:
                 mapping[member_symbol] = {'kind': member.get('kind'), 'file': join(anchorfile, '#', member.findtext('anchor'))}
 
-    for f in function_list:
-        member_symbol = f[0]
-        kind = f[2]
-        anchor_link = f[3]
+    for member_symbol, arglist, kind, anchor_link in function_list:
         try:
-            normalised_tuple = normalise(f[0] + f[1])
+            normalised_arglist = normalise(member_symbol + arglist)[1]
         except ParseException as e:
-            print('Skipping %s %s%s. Error reported from parser was: %s' % (f[2], f[0], f[1], e))
+            print('Skipping %s %s%s. Error reported from parser was: %s' % (kind, member_symbol, arglist, e))
         else:
-            normalised_arglist = normalised_tuple[1]
             if mapping.get(member_symbol) and mapping[member_symbol]['kind'] == 'function':
                 mapping[member_symbol]['arglist'][normalised_arglist] = anchor_link
             else:
