@@ -1,1 +1,7 @@
-from .doxylink import setup
+__version__ = '1.5'
+
+
+def setup(app):
+    from .doxylink import setup_doxylink_roles
+    app.add_config_value('doxylink', {}, 'env')
+    app.connect('builder-inited', setup_doxylink_roles)

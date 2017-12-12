@@ -9,9 +9,8 @@ from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
 from sphinx.util.console import bold, standout
 
+from ..doxylink import __version__
 from .parsing import normalise, ParseException
-
-__version__ = '1.5'
 
 Entry = namedtuple('Entry', ['kind', 'file'])
 
@@ -371,8 +370,3 @@ def create_role(app, tag_filename, rootdir):
 def setup_doxylink_roles(app):
     for name, (tag_filename, rootdir) in app.config.doxylink.items():
         app.add_role(name, create_role(app, tag_filename, rootdir))
-
-
-def setup(app):
-    app.add_config_value('doxylink', {}, 'env')
-    app.connect('builder-inited', setup_doxylink_roles)

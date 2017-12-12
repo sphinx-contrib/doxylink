@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-from sphinxcontrib.doxylink.doxylink import __version__
+from sphinxcontrib.doxylink import __version__
 
 
 with open('README.rst') as stream:
