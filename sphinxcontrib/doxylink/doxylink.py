@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from collections import namedtuple
 import os
 import xml.etree.ElementTree as ET
 import urllib.parse
+from collections import namedtuple
 
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
@@ -19,7 +19,7 @@ class FunctionList:
     """A FunctionList maps argument lists to specific entries"""
     def __init__(self):
         self.kind = 'function_list'
-        self._arglist = {}  # type: Mapping[str, str]
+        self._arglist = {}  # type: MutableMapping[str, str]
 
     def __getitem__(self, arglist: str) -> Entry:
         # If the user has requested a specific function through specifying an arglist then get the right anchor
@@ -114,12 +114,12 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
     :return: a dictionary mapping fully qualified symbols to files
     """
 
-    mapping = {}  # type: Mapping[str, Union[Entry, FunctionList]]
+    mapping = {}  # type: MutableMapping[str, Union[Entry, FunctionList]]
     function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
         if compound_kind not in {'namespace', 'class', 'struct', 'file', 'define', 'group'}:
-            continue  # Skip everything that isn't a namespace, class, struct or file
+            continue
 
         compound_name = compound.findtext('name')
         compound_filename = compound.findtext('filename')
@@ -134,7 +134,6 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
         mapping[compound_name] = Entry(kind=compound_kind, file=compound_filename)
 
         for member in compound.findall('member'):
-
             # If the member doesn't have an <anchorfile> element, use the parent compounds <filename> instead
             # This is the way it is in the qt.tag and is perhaps an artefact of old Doxygen
             anchorfile = member.findtext('anchorfile') or compound_filename
