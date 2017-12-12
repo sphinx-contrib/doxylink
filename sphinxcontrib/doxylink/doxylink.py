@@ -48,7 +48,7 @@ class SymbolMap:
         if self._mapping.get(symbol):
             return symbol
 
-        piecewise_list = find_url_piecewise(self._mapping.keys(), symbol)
+        piecewise_list = match_piecewise(self._mapping.keys(), symbol)
 
         # If there is only one match, return it.
         if len(piecewise_list) == 1:
@@ -162,7 +162,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
     return mapping
 
 
-def find_url_piecewise(candidates: set, symbol: str) -> set:
+def match_piecewise(candidates: set, symbol: str) -> set:
     """
     Match the requested symbol reverse piecewise (split on ``::``) against the candidates.
     This allows you to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``

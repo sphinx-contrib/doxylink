@@ -113,6 +113,6 @@ def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
-    matches = doxylink.find_url_piecewise(mapping.keys(), symbol)
+    matches = doxylink.match_piecewise(mapping.keys(), symbol)
     assert expected_matches == matches
     assert matches.issubset(mapping.keys())
