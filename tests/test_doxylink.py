@@ -99,7 +99,7 @@ def test_parse_tag_file(examples_tag_file):
     assert 'ClassesGroup' in mapping
 
 
-@pytest.mark.parametrize('symbol, matches', [
+@pytest.mark.parametrize('symbol, expected_matches', [
     ('my_namespace', {'my_namespace'}),
     ('my_namespace::MyClass', {'my_namespace::MyClass'}),
     ('MyClass', {'my_namespace::MyClass', 'my_namespace::MyClass::MyClass', 'MyClass', 'MyClass::MyClass'}),
@@ -109,8 +109,10 @@ def test_parse_tag_file(examples_tag_file):
     ('MyClass::my_method', {'my_namespace::MyClass::my_method'}),
     ('ClassesGroup', {'ClassesGroup'}),
 ])
-def test_find_url_piecewise(examples_tag_file, symbol, matches):
+def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
-    assert matches == doxylink.find_url_piecewise(mapping.keys(), symbol)
+    matches = doxylink.find_url_piecewise(mapping.keys(), symbol)
+    assert expected_matches == matches
+    assert matches.issubset(mapping.keys())
