@@ -206,15 +206,11 @@ def find_url_piecewise(mapping: dict, symbol: str) -> dict:
         split_symbol.reverse()
         split_item.reverse()
 
-        min_length = min(len(split_symbol), len(split_item))
+        min_length = len(split_symbol)
 
-        split_symbol = split_symbol[:min_length]
         split_item = split_item[:min_length]
 
-        #print split_symbol, split_item
-
         if split_symbol == split_item:
-            #print symbol + ' : ' + item
             piecewise_list[item] = data
 
     return piecewise_list

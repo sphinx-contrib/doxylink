@@ -87,19 +87,18 @@ def test_parse_tag_file(examples_tag_file):
     assert 'ClassesGroup' in mapping
 
 
-def test_find_url_piecewise(examples_tag_file):
+@pytest.mark.parametrize('symbol, matches', [
+    ('my_namespace', {'my_namespace'}),
+    ('my_namespace::MyClass', {'my_namespace::MyClass'}),
+    ('MyClass', {'my_namespace::MyClass', 'my_namespace::MyClass::MyClass', 'MyClass', 'MyClass::MyClass'}),
+    ('my_lib.h::MY_MACRO', {'my_lib.h::MY_MACRO'}),
+    ('MY_MACRO', {'my_lib.h::MY_MACRO'}),
+    ('my_namespace::MyClass::my_method', {'my_namespace::MyClass::my_method'}),
+    ('MyClass::my_method', {'my_namespace::MyClass::my_method'}),
+    ('ClassesGroup', {'ClassesGroup'}),
+])
+def test_find_url_piecewise(examples_tag_file, symbol, matches):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
-    assert 'my_namespace' in doxylink.find_url_piecewise(mapping, 'my_namespace')
-    assert 'my_namespace::MyClass' in doxylink.find_url_piecewise(mapping, 'my_namespace::MyClass')
-    assert 'my_namespace::MyClass' in doxylink.find_url_piecewise(mapping, 'MyClass')
-    assert 'MyClass' in doxylink.find_url_piecewise(mapping, 'MyClass')
-
-    assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'my_lib.h::MY_MACRO')
-    assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'MY_MACRO')
-
-    assert 'my_namespace::MyClass::my_method' in doxylink.find_url_piecewise(mapping, 'my_namespace::MyClass::my_method')
-    assert 'my_namespace::MyClass::my_method' in doxylink.find_url_piecewise(mapping, 'MyClass::my_method')
-
-    assert 'ClassesGroup' in doxylink.find_url_piecewise(mapping, 'ClassesGroup')
+    assert matches == doxylink.find_url_piecewise(mapping, symbol).keys()
