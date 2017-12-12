@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections import namedtuple
 import os
 import xml.etree.ElementTree as ET
 import urllib.parse
@@ -12,6 +13,85 @@ from .parsing import normalise, ParseException
 
 __version__ = '1.5'
 
+Entry = namedtuple('Entry', ['kind', 'file'])
+
+
+class FunctionList:
+    """A FunctionList maps argument lists to specific entries"""
+    def __init__(self):
+        self.kind = 'function_list'
+        self._arglist = {}  # type: Mapping[str, str]
+
+    def __getitem__(self, arglist: str) -> Entry:
+        # If the user has requested a specific function through specifying an arglist then get the right anchor
+        if arglist:
+            try:
+                filename = self._arglist[arglist]
+            except KeyError:
+                # TODO Offer fuzzy suggestion
+                raise LookupError('Argument list match not found')
+        else:
+            # Otherwise just return the first entry (if they don't care they get whatever comes first)
+            filename = list(self._arglist.values())[0]
+
+        return Entry(kind='function', file=filename)
+
+    def add_overload(self, arglist: str, file: str) -> None:
+        self._arglist[arglist] = file
+
+
+class SymbolMap:
+    """A SymbolMap maps symbols to Entries or FunctionLists"""
+    def __init__(self, xml_doc: ET.ElementTree) -> None:
+        self._mapping = parse_tag_file(xml_doc)
+
+    def _get_symbol_matches(self, symbol):
+        if self._mapping.get(symbol):
+            return self._mapping[symbol]
+
+        piecewise_list = find_url_piecewise(self._mapping, symbol)
+
+        # If there is only one match, return it.
+        if len(piecewise_list) == 1:
+            return list(piecewise_list.values())[0]
+
+        # If there is more than one item in piecewise_list then there is an ambiguity
+        # Often this is due to the symbol matching the name of the constructor as well as the class name itself
+        # We will prefer the class
+        classes_list = {s: e for s, e in piecewise_list.items() if e.kind == 'class'}
+
+        # If there is only one by here we return it.
+        if len(classes_list) == 1:
+            return list(classes_list.values())[0]
+
+        # Now, to disambiguate between ``PolyVox::Array< 1, ElementType >::operator[]`` and ``PolyVox::Array::operator[]`` matching ``operator[]``,
+        # we will ignore templated (as in C++ templates) tag names by removing names containing ``<``
+        no_templates_list = {s: e for s, e in piecewise_list.items() if '<' not in s}
+
+        if len(no_templates_list) == 1:
+            return list(no_templates_list.values())[0]
+
+        # If not found by now, return the shortest match, assuming that's the most specific
+        if no_templates_list:
+            # TODO return a warning here?
+            shortest_match = min(no_templates_list.keys(), key=len)
+            return no_templates_list[shortest_match]
+
+        # TODO Offer fuzzy suggestion
+        raise LookupError('Could not find a match')
+
+    def __getitem__(self, item: str) -> Entry:
+        try:
+            symbol, normalised_arglist = normalise(item)
+        except ParseException as error:
+            raise LookupError(error)
+
+        entry = self._get_symbol_matches(symbol)
+
+        if isinstance(entry, FunctionList):
+            entry = entry[normalised_arglist]
+
+        return entry
 
 
 def find_url(doc, symbol):
@@ -78,39 +158,22 @@ def find_url(doc, symbol):
     return None
 
 
-def parse_tag_file(doc):
+def parse_tag_file(doc: ET.ElementTree) -> dict:
     """
     Takes in an XML tree from a Doxygen tag file and returns a dictionary that looks something like:
 
     .. code-block:: python
 
-        {'PolyVox': {'file': 'namespace_poly_vox.html',
-                     'kind': 'namespace'},
-         'PolyVox::Array': {'file': 'class_poly_vox_1_1_array.html',
-                            'kind': 'class'},
-         'PolyVox::Array1DDouble': {'file': 'namespace_poly_vox.html#a7a1f5fd5c4f7fbb4258a495d707b5c13',
-                                    'kind': 'typedef'},
-         'PolyVox::Array1DFloat': {'file': 'namespace_poly_vox.html#a879a120e49733eba1905c33f8a7f131b',
-                                   'kind': 'typedef'},
-         'PolyVox::Array1DInt16': {'file': 'namespace_poly_vox.html#aa1463ece448c6ebed55ab429d6ae3e43',
-                                   'kind': 'typedef'},
-         'QScriptContext::throwError': {'arglist': {'( Error error, const QString & text )': 'qscriptcontext.html#throwError',
-                                                    '( const QString & text )': 'qscriptcontext.html#throwError-2'},
-                                        'kind': 'function'},
-         'QScriptContext::toString': {'arglist': {'()': 'qscriptcontext.html#toString'},
-                                      'kind': 'function'}}
+        {'PolyVox': Entry(...),
+         'PolyVox::Array': Entry(...),
+         'PolyVox::Array1DDouble': Entry(...),
+         'PolyVox::Array1DFloat': Entry(...),
+         'PolyVox::Array1DInt16': Entry(...),
+         'QScriptContext::throwError': FunctionList(...),
+         'QScriptContext::toString': FunctionList(...)
+         }
 
     Note the different form for functions. This is required to allow for 'overloading by argument type'.
-
-    To access a filename for a symbol you do:
-
-    .. code-block:: python
-
-        symbol_mapping = mapping[symbol]
-        if symbol_mapping['kind'] == 'function':
-            url = symbol_mapping['arglist'][argument_string]
-        else:
-            url = symbol_mapping['file']
 
     :Parameters:
         doc : xml.etree.ElementTree
@@ -119,7 +182,7 @@ def parse_tag_file(doc):
     :return: a dictionary mapping fully qualified symbols to files
     """
 
-    mapping = {}
+    mapping = {}  # type: Mapping[str, Union[Entry, FunctionList]]
     function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
@@ -136,7 +199,7 @@ def parse_tag_file(doc):
             compound_filename = compound_filename + '.html'
 
         # If it's a compound we can simply add it
-        mapping[compound_name] = {'kind': compound_kind, 'file': compound_filename}
+        mapping[compound_name] = Entry(kind=compound_kind, file=compound_filename)
 
         for member in compound.findall('member'):
 
@@ -150,7 +213,7 @@ def parse_tag_file(doc):
             if arglist_text and member_kind not in {'variable', 'typedef', 'enumeration'}:
                 function_list.append((member_symbol, arglist_text, member_kind, join(anchorfile, '#', member.findtext('anchor'))))
             else:
-                mapping[member_symbol] = {'kind': member.get('kind'), 'file': join(anchorfile, '#', member.findtext('anchor'))}
+                mapping[member_symbol] = Entry(kind=member.get('kind'), file=join(anchorfile, '#', member.findtext('anchor')))
 
     for member_symbol, arglist, kind, anchor_link in function_list:
         try:
@@ -158,145 +221,13 @@ def parse_tag_file(doc):
         except ParseException as e:
             print('Skipping %s %s%s. Error reported from parser was: %s' % (kind, member_symbol, arglist, e))
         else:
-            if mapping.get(member_symbol) and mapping[member_symbol]['kind'] == 'function':
-                mapping[member_symbol]['arglist'][normalised_arglist] = anchor_link
+            if mapping.get(member_symbol) and isinstance(mapping[member_symbol], FunctionList):
+                mapping[member_symbol].add_overload(normalised_arglist, anchor_link)
             else:
-                mapping[member_symbol] = {'kind': kind, 'arglist': {normalised_arglist: anchor_link}}
+                mapping[member_symbol] = FunctionList()
+                mapping[member_symbol].add_overload(normalised_arglist, anchor_link)
 
     return mapping
-
-
-def find_url2(mapping, symbol: str) -> dict:
-    """
-    Return the URL for a given symbol.
-
-    This is where the magic happens.
-
-    .. todo::
-
-        Maybe print a list of all possible matches as a warning (but still only return the first)
-
-    :Parameters:
-        mapping : dictionary
-            A dictionary of the form returned by :py:func:`parse_tag_file`
-        symbol : string
-            The symbol to lookup in the file. E.g. something like 'PolyVox::Array' or 'tidyUpMemory'
-
-    :return: String representing the filename part of the URL
-
-    :raises:
-        LookupError
-            Raised if the symbol could not be matched in the file
-    """
-    #print "\n\nSearching for", symbol
-    try:
-        symbol, normalised_arglist = normalise(symbol)
-    except ParseException as error:
-        raise LookupError(error)
-    #print symbol, normalised_arglist
-
-    # If we have an exact match then return it.
-    if mapping.get(symbol):
-        #print ('Exact match')
-        return return_from_mapping(mapping[symbol], normalised_arglist)
-
-    # If the user didn't pass in any arguments, i.e. `arguments == ''` then they don't care which version of the overloaded funtion they get.
-
-    # First we check for any mapping entries which even slightly match the requested symbol
-    #endswith_list = {}
-    #for item, data in mapping.items():
-    #   if item.endswith(symbol):
-    #       print symbol + ' : ' + item
-    #       endswith_list[item] = data
-    #       mapping[item]['file']
-
-    # If we only find one then we return it.
-    #if len(endswith_list) is 1:
-    #   return endswith_list.values()[0]['file']
-
-    #print("Still", len(endswith_list), 'possible matches')
-
-    piecewise_list = find_url_piecewise(mapping, symbol)
-
-    # If there is only one match, return it.
-    if len(piecewise_list) == 1:
-        return return_from_mapping(list(piecewise_list.values())[0], normalised_arglist)
-
-    #print("Still", len(piecewise_list), 'possible matches')
-
-    # If there is more than one item in piecewise_list then there is an ambiguity
-    # Often this is due to the symbol matching the name of the constructor as well as the class name itself
-    classes_list = find_url_classes(piecewise_list, symbol)
-
-    # If there is only one by here we return it.
-    if len(classes_list) == 1:
-        return list(classes_list.values())[0]
-
-    #print("Still", len(classes_list), 'possible matches')
-
-    # If we exhausted the list by requiring classes, use the list from before the filter.
-    if not classes_list:
-        classes_list = piecewise_list
-
-    no_templates_list = find_url_remove_templates(classes_list, symbol)
-
-    if len(no_templates_list) == 1:
-        return return_from_mapping(list(no_templates_list.values())[0], normalised_arglist)
-
-    #print("Still", len(no_templates_list), 'possible matches')
-
-    # If not found by now, return the shortest match, assuming that's the most specific
-    if no_templates_list:
-        # TODO return a warning here?
-        shortest_match = min(no_templates_list.keys(), key=len)
-        return return_from_mapping(no_templates_list[shortest_match], normalised_arglist)
-    else:
-        LookupError('Could not find a match')
-
-
-def return_from_mapping(mapping_entry: dict, normalised_arglist: str='') -> dict:
-    """
-    Return a mapping to a single URL in the form.
-    This is needed since mapping entries for functions are more complicated due to function overriding.
-
-    If the mapping to be returned is not a function, this will simply return the mapping entry intact.
-    If the entry is a function it will attempt to get the right version based on the function signature.
-
-    :Parameters:
-        mapping_entry : dict
-            should be a single entry from the large mapping file corresponding to a single symbol.
-            If the symbol is a function, then ``mapping_entry['arglist']`` will be a dictionary mapping normalised signatures to URLs
-        normalised_arglist : string
-            the normalised form of the arglist that the user has requested.
-            This can be empty in which case the function will return just the first element of ``mapping_entry['arglist']``.
-            This parameter is ignored if ``mapping_entry['kind'] != 'function'``
-
-    :return: dictionary something like:
-
-        .. code-block:: python
-
-            {'kind' : 'function', 'file' : 'something.html#foo'}
-
-    """
-    # If it's a function we need to grab the right signature from the arglist.
-    if mapping_entry['kind'] == 'function':
-        # If the user has requested a specific function through specifying an arglist then get the right anchor
-        if normalised_arglist:
-            try:
-                filename = mapping_entry['arglist'][normalised_arglist]
-            except KeyError:
-                raise LookupError('Argument list match not found')
-        else:
-            # Otherwise just return the first entry (if they don't care they get whatever comes first)
-            filename = list(mapping_entry['arglist'].values())[0]
-
-        return {'kind': 'function', 'file': filename}
-    elif mapping_entry.get('arglist'):
-        # This arglist should only be one entry long and that entry should have '' as its key
-        return {'kind': mapping_entry['kind'], 'file': mapping_entry['arglist']['']}
-
-    # If it's not a function, then return it raw
-    return mapping_entry
 
 
 def find_url_piecewise(mapping: dict, symbol: str) -> dict:
@@ -357,28 +288,6 @@ def find_url_piecewise(mapping: dict, symbol: str) -> dict:
     return piecewise_list
 
 
-def find_url_classes(mapping, symbol):
-    """Prefer classes over names of constructors"""
-    classes_list = {}
-    for item, data in mapping.items():
-        if data['kind'] == 'class':
-            #print symbol + ' : ' + item
-            classes_list[item] = data
-
-    return classes_list
-
-
-def find_url_remove_templates(mapping, symbol):
-    """Now, to disambiguate between ``PolyVox::Array< 1, ElementType >::operator[]`` and ``PolyVox::Array::operator[]`` matching ``operator[]``, we will ignore templated (as in C++ templates) tag names by removing names containing ``<``"""
-    no_templates_list = {}
-    for item, data in mapping.items():
-        if '<' not in item:
-            #print symbol + ' : ' + item
-            no_templates_list[item] = data
-
-    return no_templates_list
-
-
 def join(*args):
     return ''.join(args)
 
@@ -397,22 +306,22 @@ def create_role(app, tag_filename, rootdir):
         if not hasattr(app.env, 'doxylink_cache'):
             # no cache present at all, initialise it
             app.info('No cache at all, rebuilding...')
-            mapping = parse_tag_file(tag_file)
+            mapping = SymbolMap(tag_file)
             app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}}
         elif not app.env.doxylink_cache.get(cache_name):
             # Main cache is there but the specific sub-cache for this tag file is not
             app.info('Sub cache is missing, rebuilding...')
-            mapping = parse_tag_file(tag_file)
+            mapping = SymbolMap(tag_file)
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
         elif app.env.doxylink_cache[cache_name]['mtime'] < os.path.getmtime(tag_filename):
             # tag file has been modified since sub-cache creation
             app.info('Sub-cache is out of date, rebuilding...')
-            mapping = parse_tag_file(tag_file)
+            mapping = SymbolMap(tag_file)
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
         elif not app.env.doxylink_cache[cache_name].get('version') or app.env.doxylink_cache[cache_name].get('version') != __version__:
             # sub-cache doesn't have a version or the version doesn't match
             app.info('Sub-cache schema version doesn\'t match, rebuilding...')
-            mapping = parse_tag_file(tag_file)
+            mapping = SymbolMap(tag_file)
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
         else:
             # The cache is up to date
@@ -429,7 +338,7 @@ def create_role(app, tag_filename, rootdir):
         if tag_file:
             url = find_url(tag_file, part)
             try:
-                url = find_url2(app.env.doxylink_cache[cache_name]['mapping'], part)
+                url = app.env.doxylink_cache[cache_name]['mapping'][part]
             except LookupError as error:
                 warning_messages.append('Error while parsing `%s`. Is not a well-formed C++ function call or symbol. If this is not the case, it is a doxylink bug so please report it. Error reported was: %s' % (part, error))
             if url:
@@ -437,13 +346,13 @@ def create_role(app, tag_filename, rootdir):
                 # If it's an absolute path then the link will work regardless of the document directory
                 # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
                 if os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
-                    full_url = join(rootdir, url['file'])
+                    full_url = join(rootdir, url.file)
                 # But otherwise we need to add the relative path of the current document to the root source directory to the link
                 else:
                     relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.current_source))
-                    full_url = join(relative_path_to_docsrc, '/', rootdir, url['file'])  # We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
+                    full_url = join(relative_path_to_docsrc, '/', rootdir, url.file)  # We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
 
-                if url['kind'] == 'function' and app.config.add_function_parentheses and not normalise(title)[1]:
+                if url.kind == 'function' and app.config.add_function_parentheses and not normalise(title)[1]:
                     title = join(title, '()')
 
                 pnode = nodes.reference(title, title, internal=False, refuri=full_url)
