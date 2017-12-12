@@ -48,33 +48,32 @@ class SymbolMap:
         if self._mapping.get(symbol):
             return symbol
 
-        piecewise_list = find_url_piecewise(self._mapping, symbol)
+        piecewise_list = set(find_url_piecewise(self._mapping, symbol).keys())
 
         # If there is only one match, return it.
         if len(piecewise_list) == 1:
-            return list(piecewise_list.keys())[0]
+            return list(piecewise_list)[0]
 
         # If there is more than one item in piecewise_list then there is an ambiguity
         # Often this is due to the symbol matching the name of the constructor as well as the class name itself
         # We will prefer the class
-        classes_list = {s: e for s, e in piecewise_list.items() if e.kind == 'class'}
+        classes_list = {s for s in piecewise_list if self._mapping[s].kind == 'class'}
 
         # If there is only one by here we return it.
         if len(classes_list) == 1:
-            return list(classes_list.keys())[0]
+            return list(classes_list)[0]
 
         # Now, to disambiguate between ``PolyVox::Array< 1, ElementType >::operator[]`` and ``PolyVox::Array::operator[]`` matching ``operator[]``,
         # we will ignore templated (as in C++ templates) tag names by removing names containing ``<``
-        no_templates_list = {s: e for s, e in piecewise_list.items() if '<' not in s}
+        no_templates_list = {s for s in piecewise_list if '<' not in s}
 
         if len(no_templates_list) == 1:
-            return list(no_templates_list.keys())[0]
+            return list(no_templates_list)[0]
 
         # If not found by now, return the shortest match, assuming that's the most specific
         if no_templates_list:
             # TODO return a warning here?
-            shortest_match = min(no_templates_list.keys(), key=len)
-            return shortest_match
+            return min(no_templates_list, key=len)
 
         # TODO Offer fuzzy suggestion
         raise LookupError('Could not find a match')
