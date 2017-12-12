@@ -291,7 +291,7 @@ def create_role(app, tag_filename, rootdir):
             relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.current_source))
             full_url = join(relative_path_to_docsrc, '/', rootdir, url.file)  # We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
 
-        if url.kind == 'function' and app.config.add_function_parentheses and normalise(title)[1] == '':
+        if url.kind == 'function' and app.config.add_function_parentheses and normalise(title)[1] == '' and not has_explicit_title:
             title = join(title, '()')
 
         pnode = nodes.reference(title, title, internal=False, refuri=full_url)
