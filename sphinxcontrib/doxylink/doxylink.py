@@ -80,10 +80,7 @@ class SymbolMap:
         raise LookupError('Could not find a match')
 
     def __getitem__(self, item: str) -> Entry:
-        try:
-            symbol, normalised_arglist = normalise(item)
-        except ParseException as error:
-            raise LookupError(error)
+        symbol, normalised_arglist = normalise(item)
 
         entry = self._get_symbol_matches(symbol)
 
