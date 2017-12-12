@@ -113,4 +113,4 @@ def test_find_url_piecewise(examples_tag_file, symbol, matches):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
-    assert matches == doxylink.find_url_piecewise(mapping, symbol).keys()
+    assert matches == doxylink.find_url_piecewise(mapping, symbol)

@@ -48,7 +48,7 @@ class SymbolMap:
         if self._mapping.get(symbol):
             return symbol
 
-        piecewise_list = set(find_url_piecewise(self._mapping, symbol).keys())
+        piecewise_list = find_url_piecewise(self._mapping, symbol)
 
         # If there is only one match, return it.
         if len(piecewise_list) == 1:
@@ -162,7 +162,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
     return mapping
 
 
-def find_url_piecewise(mapping: dict, symbol: str) -> dict:
+def find_url_piecewise(mapping: dict, symbol: str) -> set:
     """
     Match the requested symbol reverse piecewise (split on ``::``) against the tag names to ensure they match exactly (modulo ambiguity)
     So, if in the mapping there is ``PolyVox::Volume::FloatVolume`` and ``PolyVox::Volume`` they would be split into:
@@ -198,8 +198,8 @@ def find_url_piecewise(mapping: dict, symbol: str) -> dict:
     Good, so we add it to the list
 
     """
-    piecewise_list = {}
-    for item, data in mapping.items():
+    piecewise_list = set()
+    for item in mapping.keys():
         split_symbol = symbol.split('::')
         split_item = item.split('::')
 
@@ -211,7 +211,7 @@ def find_url_piecewise(mapping: dict, symbol: str) -> dict:
         split_item = split_item[:min_length]
 
         if split_symbol == split_item:
-            piecewise_list[item] = data
+            piecewise_list.add(item)
 
     return piecewise_list
 
