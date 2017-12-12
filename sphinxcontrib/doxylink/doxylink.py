@@ -267,34 +267,35 @@ def create_role(app, tag_filename, rootdir):
         has_explicit_title, title, part = split_explicit_title(text)
         part = utils.unescape(part)
         warning_messages = []
-        if tag_file:
-            try:
-                url = app.env.doxylink_cache[cache_name]['mapping'][part]
-            except LookupError as error:
-                warning_messages.append('Error while parsing `%s`. Is not a well-formed C++ function call or symbol. If this is not the case, it is a doxylink bug so please report it. Error reported was: %s' % (part, error))
+        if not tag_file:
+            warning_messages.append('Could not find match for `%s` because tag file not found' % part)
+            return [nodes.inline(title, title)], []
 
-            else:
-                # If it's an absolute path then the link will work regardless of the document directory
-                # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
-                if os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
-                    full_url = join(rootdir, url.file)
-                # But otherwise we need to add the relative path of the current document to the root source directory to the link
-                else:
-                    relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.current_source))
-                    full_url = join(relative_path_to_docsrc, '/', rootdir, url.file)  # We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
+        try:
+            url = app.env.doxylink_cache[cache_name]['mapping'][part]
+        except LookupError as error:
+            inliner.reporter.warning('Could not find match for `%s` in `%s` tag file. Error reported was %s' % (part, tag_filename, error), line=lineno)
+            return [nodes.inline(title, title)], []
+        except ParseException as error:
+            inliner.reporter.warning('Error while parsing `%s`. Is not a well-formed C++ function call or symbol.'
+                                     'If this is not the case, it is a doxylink bug so please report it.'
+                                     'Error reported was: %s' % (part, error), line=lineno)
+            return [nodes.inline(title, title)], []
 
-                if url.kind == 'function' and app.config.add_function_parentheses and not normalise(title)[1]:
-                    title = join(title, '()')
-
-                pnode = nodes.reference(title, title, internal=False, refuri=full_url)
-                return [pnode], []
-            # By here, no match was found
-            warning_messages.append('Could not find match for `%s` in `%s` tag file' % (part, tag_filename))
+        # If it's an absolute path then the link will work regardless of the document directory
+        # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
+        if os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
+            full_url = join(rootdir, url.file)
+        # But otherwise we need to add the relative path of the current document to the root source directory to the link
         else:
-            warning_messages.append('Could not find match for `%s` because tag file not found' % (part))
+            relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.current_source))
+            full_url = join(relative_path_to_docsrc, '/', rootdir, url.file)  # We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
 
-        pnode = nodes.inline(rawsource=title, text=title)
-        return [pnode], [inliner.reporter.warning(message, line=lineno) for message in warning_messages]
+        if url.kind == 'function' and app.config.add_function_parentheses and normalise(title)[1] == '':
+            title = join(title, '()')
+
+        pnode = nodes.reference(title, title, internal=False, refuri=full_url)
+        return [pnode], []
 
     return find_doxygen_link
 
