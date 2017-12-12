@@ -164,39 +164,15 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
 
 def find_url_piecewise(candidates: set, symbol: str) -> set:
     """
-    Match the requested symbol reverse piecewise (split on ``::``) against the tag names to ensure they match exactly (modulo ambiguity)
-    So, if in the mapping there is ``PolyVox::Volume::FloatVolume`` and ``PolyVox::Volume`` they would be split into:
+    Match the requested symbol reverse piecewise (split on ``::``) against the candidates.
+    This allows you to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``
 
-    .. code-block:: python
+    Args:
+        candidates: set of possible matches for symbol
+        symbol: the symbol to match against
 
-        ['PolyVox', 'Volume', 'FloatVolume'] and ['PolyVox', 'Volume']
-
-    and reversed:
-
-    .. code-block:: python
-
-        ['FloatVolume', 'Volume', 'PolyVox'] and ['Volume', 'PolyVox']
-
-    and truncated to the shorter of the two:
-
-    .. code-block:: python
-
-        ['FloatVolume', 'Volume'] and ['Volume', 'PolyVox']
-
-    If we're searching for the ``PolyVox::Volume`` symbol we would compare:
-
-    .. code-block:: python
-
-        ['Volume', 'PolyVox'] to ['FloatVolume', 'Volume', 'PolyVox'].
-
-    That doesn't match so we look at the next in the mapping:
-
-    .. code-block:: python
-
-        ['Volume', 'PolyVox'] to ['Volume', 'PolyVox'].
-
-    Good, so we add it to the list
-
+    Returns:
+        set of matches
     """
     piecewise_list = set()
     for item in candidates:
