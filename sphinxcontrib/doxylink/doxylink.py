@@ -93,70 +93,6 @@ class SymbolMap:
         return entry
 
 
-def find_url(doc, symbol):
-    """
-    Return the URL for a given symbol.
-
-    This is where the magic happens.
-    This function could be a lot more clever. At present it required the passed symbol to be almost exactly the same as the entries in the Doxygen tag file.
-
-    .. todo::
-
-        Maybe print a list of all possible matches as a warning (but still only return the first)
-
-    :Parameters:
-        doc : xml.etree.ElementTree
-            The XML DOM object
-        symbol : string
-            The symbol to lookup in the file. E.g. something like 'PolyVox::Array' or 'tidyUpMemory'
-
-    :return: String representing the filename part of the URL
-    """
-
-    # First check for an exact match with a top-level object (namespaces, objects etc.)
-
-    #env = inliner.document.settings.env
-
-    matches = []
-    for compound in doc.findall('.//compound'):
-        if compound.find('name').text == symbol:
-            matches += [{'file': compound.find('filename').text, 'kind': compound.get('kind')}]
-
-    if len(matches) > 1:
-        pass
-        #env.warn(env.docname, 'There were multiple matches for `%s`: %s' % (symbol, matches))
-    if len(matches) == 1:
-        return matches[0]
-
-    # Strip off first namespace bit of the compound name so that 'ArraySizes' can match 'PolyVox::ArraySizes'
-    for compound in doc.findall('.//compound'):
-        symbol_list = compound.find('name').text.split('::', 1)
-        if len(symbol_list) == 2:
-            reducedsymbol = symbol_list[1]
-            if reducedsymbol == symbol:
-                return {'file': compound.find('filename').text, 'kind': compound.get('kind')}
-
-    # Now split the symbol by '::'. Find an exact match for the first part and then a member match for the second
-    # So PolyVox::Array::operator[] becomes like {namespace: "PolyVox::Array", endsymbol: "operator[]"}
-    symbol_list = symbol.rsplit('::', 1)
-    if len(symbol_list) == 2:
-        namespace = symbol_list[0]
-        endsymbol = symbol_list[1]
-        for compound in doc.findall('.//compound'):
-            if compound.find('name').text == namespace:
-                for member in compound.findall('member'):
-                    #If this compound object contains the matching member then return it
-                    if member.find('name').text == endsymbol:
-                        return {'file': (member.findtext('anchorfile') or compound.findtext('filename')) + '#' + member.find('anchor').text, 'kind': member.get('kind')}
-
-    # Then we'll look at unqualified members
-    for member in doc.findall('.//member'):
-        if member.find('name').text == symbol:
-            return {'file': (member.findtext('anchorfile') or compound.findtext('filename')) + '#' + member.find('anchor').text, 'kind': member.get('kind')}
-
-    return None
-
-
 def parse_tag_file(doc: ET.ElementTree) -> dict:
     """
     Takes in an XML tree from a Doxygen tag file and returns a dictionary that looks something like:
@@ -335,13 +271,12 @@ def create_role(app, tag_filename, rootdir):
         part = utils.unescape(part)
         warning_messages = []
         if tag_file:
-            url = find_url(tag_file, part)
             try:
                 url = app.env.doxylink_cache[cache_name]['mapping'][part]
             except LookupError as error:
                 warning_messages.append('Error while parsing `%s`. Is not a well-formed C++ function call or symbol. If this is not the case, it is a doxylink bug so please report it. Error reported was: %s' % (part, error))
-            if url:
 
+            else:
                 # If it's an absolute path then the link will work regardless of the document directory
                 # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
                 if os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
