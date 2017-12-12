@@ -74,6 +74,18 @@ def test_file_equivalent(examples_tag_file, symbol1, symbol2):
     assert mapping[symbol1].file == mapping[symbol2].file
 
 
+@pytest.mark.parametrize('symbol1, symbol2', [
+    ('my_func', 'my_namespace::my_func'),
+    ('my_func()', 'my_func(int)'),
+    ('my_func(float)', 'my_func(int)'),
+])
+def test_file_different(examples_tag_file, symbol1, symbol2):
+    tag_file = ET.parse(examples_tag_file)
+    mapping = doxylink.SymbolMap(tag_file)
+
+    assert mapping[symbol1].file != mapping[symbol2].file
+
+
 def test_parse_tag_file(examples_tag_file):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
