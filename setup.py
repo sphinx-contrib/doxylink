@@ -2,6 +2,9 @@
 
 from setuptools import setup, find_packages
 
+from sphinxcontrib.doxylink import __version__
+
+
 with open('README.rst') as stream:
     long_desc = stream.read()
 
@@ -9,7 +12,7 @@ requires = ['Sphinx>=0.6', 'pyparsing']
 
 setup(
     name='sphinxcontrib-doxylink',
-    version='1.5',
+    version=__version__,
     url='http://sphinxcontrib-doxylink.readthedocs.io/en/stable/',
     download_url='http://pypi.python.org/pypi/sphinxcontrib-doxylink',
     license='BSD',

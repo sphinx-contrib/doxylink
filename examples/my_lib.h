@@ -30,6 +30,7 @@ namespace my_namespace
 /// This class has the same name but is a different class
 class MyClass
 {
+   public:
     MyClass();
 };
 /// @}

@@ -45,17 +45,53 @@ def examples_tag_file():
     return tagfile
 
 
+@pytest.mark.parametrize('symbol, file', [
+    ('my_func', 'my__lib_8h.html'),
+    ('my_func()', 'my__lib_8h.html'),
+    ('my_namespace::my_func', 'namespacemy__namespace.html'),
+    ('my_lib.h', 'my__lib_8h.html'),
+    ('my_lib.h::my_func', 'my__lib_8h.html'),
+    ('my_namespace', 'namespacemy__namespace.html'),
+    ('my_namespace::MyClass', 'classmy__namespace_1_1MyClass.html'),
+    ('my_lib.h::MY_MACRO', 'my__lib_8h.html'),
+    ('my_namespace::MyClass::my_method', 'classmy__namespace_1_1MyClass.html'),
+    ('ClassesGroup', 'group__ClassesGroup.html'),
+])
+def test_file_html(examples_tag_file, symbol, file):
+    tag_file = ET.parse(examples_tag_file)
+    mapping = doxylink.SymbolMap(tag_file)
+
+    assert mapping[symbol].file.startswith(file)
+
+
+@pytest.mark.parametrize('symbol1, symbol2', [
+    ('my_func', 'my_lib.h::my_func'),
+])
+def test_file_equivalent(examples_tag_file, symbol1, symbol2):
+    tag_file = ET.parse(examples_tag_file)
+    mapping = doxylink.SymbolMap(tag_file)
+
+    assert mapping[symbol1].file == mapping[symbol2].file
+
+
+@pytest.mark.parametrize('symbol1, symbol2', [
+    ('my_func', 'my_namespace::my_func'),
+    ('my_func()', 'my_func(int)'),
+    ('my_func(float)', 'my_func(int)'),
+])
+def test_file_different(examples_tag_file, symbol1, symbol2):
+    tag_file = ET.parse(examples_tag_file)
+    mapping = doxylink.SymbolMap(tag_file)
+
+    assert mapping[symbol1].file != mapping[symbol2].file
+
+
 def test_parse_tag_file(examples_tag_file):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
-    from pprint import pprint
-    pprint(mapping)
-
     assert 'my_lib.h' in mapping
     assert 'my_lib.h::my_func' in mapping
-    assert '()' in mapping['my_lib.h::my_func']['arglist']
-    assert len(mapping['my_lib.h::my_func']['arglist']) == 5
     assert 'my_namespace' in mapping
     assert 'my_namespace::MyClass' in mapping
     assert 'my_lib.h::MY_MACRO' in mapping
@@ -63,41 +99,20 @@ def test_parse_tag_file(examples_tag_file):
     assert 'ClassesGroup' in mapping
 
 
-def test_find_url_piecewise(examples_tag_file):
+@pytest.mark.parametrize('symbol, expected_matches', [
+    ('my_namespace', {'my_namespace'}),
+    ('my_namespace::MyClass', {'my_namespace::MyClass'}),
+    ('MyClass', {'my_namespace::MyClass', 'my_namespace::MyClass::MyClass', 'MyClass', 'MyClass::MyClass'}),
+    ('my_lib.h::MY_MACRO', {'my_lib.h::MY_MACRO'}),
+    ('MY_MACRO', {'my_lib.h::MY_MACRO'}),
+    ('my_namespace::MyClass::my_method', {'my_namespace::MyClass::my_method'}),
+    ('MyClass::my_method', {'my_namespace::MyClass::my_method'}),
+    ('ClassesGroup', {'ClassesGroup'}),
+])
+def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
-    assert 'my_namespace' in doxylink.find_url_piecewise(mapping, 'my_namespace')
-    assert 'my_namespace::MyClass' in doxylink.find_url_piecewise(mapping, 'my_namespace::MyClass')
-    assert 'my_namespace::MyClass' in doxylink.find_url_piecewise(mapping, 'MyClass')
-    assert 'MyClass' in doxylink.find_url_piecewise(mapping, 'MyClass')
-
-    assert len(doxylink.find_url_piecewise(mapping, 'MyClass')) == 3
-
-    assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'my_lib.h::MY_MACRO')
-    assert 'my_lib.h::MY_MACRO' in doxylink.find_url_piecewise(mapping, 'MY_MACRO')
-
-    assert 'my_namespace::MyClass::my_method' in doxylink.find_url_piecewise(mapping, 'my_namespace::MyClass::my_method')
-    assert 'my_namespace::MyClass::my_method' in doxylink.find_url_piecewise(mapping, 'MyClass::my_method')
-
-    assert 'ClassesGroup' in doxylink.find_url_piecewise(mapping, 'ClassesGroup')
-
-
-def test_return_from_mapping(examples_tag_file):
-    tag_file = ET.parse(examples_tag_file)
-    mapping = doxylink.parse_tag_file(tag_file)
-
-    mapping_entry = mapping['my_lib.h::my_func']
-    assert doxylink.return_from_mapping(mapping_entry)
-    assert doxylink.return_from_mapping(mapping_entry, '()')
-    assert doxylink.return_from_mapping(mapping_entry, '(int)')
-    assert doxylink.return_from_mapping(mapping_entry, '(float)')
-    with pytest.raises(LookupError):
-        print(doxylink.return_from_mapping(mapping_entry, '(double)'))
-
-
-def test_find_url2(examples_tag_file):
-    tag_file = ET.parse(examples_tag_file)
-    mapping = doxylink.parse_tag_file(tag_file)
-
-    assert doxylink.find_url2(mapping, 'MyClass')['file'] == 'classMyClass.html'
+    matches = doxylink.match_piecewise(mapping.keys(), symbol)
+    assert expected_matches == matches
+    assert matches.issubset(mapping.keys())

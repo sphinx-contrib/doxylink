@@ -1,9 +1,11 @@
 ()
 ==
 
-- Add possibility to link to #DEFINE macros
-- Do a better job of parsing compound fundamental types
-- Add support for linking to Doxygen groups [issue #11]
+- Add possibility to link to #DEFINE macros.
+- Do a better job of parsing compound fundamental types.
+- Add support for linking to Doxygen groups [issue #11].
+- Rewrite internals to a more structured style.
+- Fix error in namespace resolution.
 
 1.5 (Dec 9, 2017)
 ====================
