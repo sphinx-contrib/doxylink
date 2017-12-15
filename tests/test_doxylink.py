@@ -1,11 +1,14 @@
 import datetime
 import glob
+import io
 import os
 import os.path
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 
 import pytest
+from sphinx.testing.path import path
 
 from sphinxcontrib.doxylink import doxylink
 
@@ -43,6 +46,53 @@ def examples_tag_file():
         subprocess.call('doxygen', cwd=basedir)
 
     return tagfile
+
+
+@pytest.fixture
+def asw(examples_tag_file):
+    """Return a Sphinx app, a status buffer and a warnings buffer"""
+    from sphinx.testing.util import SphinxTestApp
+    rootdir = path(os.path.dirname(__file__) or '.').abspath()
+    example_dir = rootdir / '../examples'
+    status, warning = io.StringIO(), io.StringIO()
+    confoverrides = {
+        'html_theme': 'basic',
+        'html_theme_options': {'nosidebar': True},
+    }
+    this_app = SphinxTestApp('html', example_dir, status=status, warning=warning, confoverrides=confoverrides)
+    return this_app, status, warning
+
+
+def test_sphinx_build(asw):
+    app, status, warning = asw
+    app.build()
+    html = (app.outdir / 'index.html').text()
+    print(html)
+    assert '<a class="reference external" href="https://example.com/classmy__namespace_1_1MyClass.html">my_namespace::MyClass</a></p>' in html
+
+
+@pytest.mark.parametrize('input_text, expect_text, expect_uri', [
+    (':my_lib:`my_func`', 'my_func()', 'my__lib_8h.html'),
+    (':my_lib:`my func <my_func>`', 'my func', 'my__lib_8h.html'),
+])
+def test_role_function(asw, input_text, expect_text, expect_uri):
+    app, status, warning = asw
+
+    match = re.match(r':(\w+):`(.+)`', input_text)
+
+    role_name = match.group(1)
+    text = match.group(2)
+
+    finder = doxylink.create_role(app, app.config.doxylink[role_name][0], app.config.doxylink[role_name][1])
+
+    [o], _ = finder(role_name, input_text, text, 1, inliner=None)
+
+    assert len(o.children) == 1, 'The output node should have exactly one child Text node'
+    out_text = o.children[0].astext()
+    out_refuri = o.attributes['refuri']
+
+    assert out_text == expect_text
+    assert out_refuri.startswith(app.config.doxylink[role_name][1]+expect_uri)
 
 
 @pytest.mark.parametrize('symbol, file', [
