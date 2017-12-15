@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath('..'))
 extensions = ['sphinxcontrib.doxylink']
 
 doxylink = {
-    'my_lib': (os.path.abspath('./my_lib.tag'), 'https://examples.com/'),
+    'my_lib': (os.path.abspath('./my_lib.tag'), 'https://example.com/'),
 }
 
 master_doc = 'index'
