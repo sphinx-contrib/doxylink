@@ -238,9 +238,8 @@ def create_role(app, tag_filename, rootdir):
         # from :name:`title <part>`
         has_explicit_title, title, part = split_explicit_title(text)
         part = utils.unescape(part)
-        warning_messages = []
         if not tag_file:
-            warning_messages.append('Could not find match for `%s` because tag file not found' % part)
+            inliner.reporter.warning('Could not find match for `%s` because tag file not found' % part, line=lineno)
             return [nodes.inline(title, title)], []
 
         try:
