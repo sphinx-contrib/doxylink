@@ -260,7 +260,7 @@ def create_role(app, tag_filename, rootdir):
             full_url = join(rootdir, url.file)
         # But otherwise we need to add the relative path of the current document to the root source directory to the link
         else:
-            relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.current_source))
+            relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.attributes['source']))
             full_url = join(relative_path_to_docsrc, '/', rootdir, url.file)  # We always use the '/' here rather than os.sep since this is a web link avoids problems like documentation/.\../library/doc/ (mixed slashes)
 
         if url.kind == 'function' and app.config.add_function_parentheses and normalise(title)[1] == '' and not has_explicit_title:
