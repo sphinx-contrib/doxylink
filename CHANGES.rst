@@ -1,6 +1,9 @@
 ()
 ==
 
+1.6 (Jul 22, 2018)
+==================
+
 - Add possibility to link to #DEFINE macros.
 - Do a better job of parsing compound fundamental types.
 - Add support for linking to Doxygen groups [issue #11].
