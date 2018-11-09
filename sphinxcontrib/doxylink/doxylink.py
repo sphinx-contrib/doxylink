@@ -148,6 +148,8 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
 
     for member_symbol, arglist, kind, anchor_link in function_list:
         try:
+            if member_symbol.endswith('operator()'): # cleanup operator() because it confuses the normalization.
+                member_symbol = member_symbol[:-len('()')] # drop the trailing parens, should be non-ambiguous.
             normalised_arglist = normalise(member_symbol + arglist)[1]
         except ParseException as e:
             print('Skipping %s %s%s. Error reported from parser was: %s' % (kind, member_symbol, arglist, e))
