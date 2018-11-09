@@ -47,7 +47,7 @@ number = Word('-.' + nums)
 input_name = OneOrMore(Word(alphanums + '_') | angle_bracket_pair | parentheses_pair | square_bracket_pair)
 
 # Grab the '&', '*' or '**' type bit in (const QString & foo, int ** bar)
-pointer_or_reference = oneOf('* &')
+pointer_or_reference = Combine(oneOf('* &') + Optional('...'))
 
 # The '=QString()' or '=false' bit in (int foo = 4, bool bar = false)
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | Word('|&^'))
