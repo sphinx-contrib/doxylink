@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
+import requests
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
@@ -36,6 +38,7 @@ def report_info(env, msg, docname=None, lineno=None):
     else:
         env.info(docname, msg, lineno=lineno)
 
+
 def report_warning(env, msg, docname=None, lineno=None):
     '''Convenience function for logging a warning
 
@@ -52,6 +55,24 @@ def report_warning(env, msg, docname=None, lineno=None):
             logger.warning(msg, location=docname)
     else:
         env.warn(docname, msg, lineno=lineno)
+
+def is_url(str_to_validate):
+    ''' Helper function to check if string contains URL
+
+    Args:
+        str_to_validate (str): String to validate as URL
+
+    Returns:
+        bool: True if given string is a URL, False otherwise
+    '''
+    regex = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return bool(re.match(regex, str_to_validate))
 
 
 class FunctionList:
@@ -241,7 +262,13 @@ def create_role(app, tag_filename, rootdir):
         rootdir = join(rootdir, os.sep)
 
     try:
-        tag_file = ET.parse(tag_filename)
+        if is_url(tag_filename):
+            response = requests.get(tag_filename)
+            if response.status_code != 200:
+                raise FileNotFoundError
+            tag_file = ET.fromstring(response.text)
+        else:
+            tag_file = ET.parse(tag_filename)
 
         cache_name = os.path.basename(tag_filename)
 
