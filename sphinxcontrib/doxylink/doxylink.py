@@ -265,7 +265,7 @@ def create_role(app, tag_filename, rootdir):
         if is_url(tag_filename):
             response = requests.get(tag_filename)
             if response.status_code != 200:
-                raise FileNotFoundError
+                raise FileNotFoundError(response.reason)
             tag_file = ET.fromstring(response.text)
         else:
             tag_file = ET.parse(tag_filename)
@@ -296,9 +296,10 @@ def create_role(app, tag_filename, rootdir):
         else:
             # The cache is up to date
             report_info(app.env, 'Sub-cache is up-to-date')
-    except FileNotFoundError:
+    except FileNotFoundError as err:
         tag_file = None
-        report_warning(app.env, standout('Could not find tag file %s. Make sure your `doxylink` config variable is set correctly.' % tag_filename))
+        report_warning(app.env, standout('Could not find tag file %s. Make sure your `doxylink` config variable is set '
+                                         'correctly. Reason: %s' % (tag_filename, err)))
 
     def find_doxygen_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
         # from :name:`title <part>`
