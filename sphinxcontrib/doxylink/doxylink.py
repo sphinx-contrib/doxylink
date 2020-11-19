@@ -265,6 +265,7 @@ def create_role(app, tag_filename, rootdir):
         if is_url(tag_filename):
             report_warning(app.env, standout('Tag file %s is a URL.' % tag_filename))
             response = requests.get(tag_filename)
+            report_warning(app.env, standout('Response: %s' % response.__dict__))
             if response.status_code != 200:
                 raise FileNotFoundError(response.reason)
             tag_file = ET.fromstring(response.text)
