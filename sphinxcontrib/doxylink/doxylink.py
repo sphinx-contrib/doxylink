@@ -6,6 +6,8 @@ import requests
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
+from dateutil.parser import parse as parsedate
+from datetime import datetime, timezone
 
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
@@ -267,8 +269,12 @@ def create_role(app, tag_filename, rootdir):
             if response.status_code != 200:
                 raise FileNotFoundError
             tag_file = ET.fromstring(response.text)
+            epoch_utc = datetime.utcfromtimestamp(0).replace(timezone.utc)
+            tag_file_date_utc = parsedate(response.headers['last-modified'])
+            modification_time = (tag_file_date_utc - epoch_utc).total_seconds()
         else:
             tag_file = ET.parse(tag_filename)
+            modification_time = os.path.getmtime(tag_filename)
 
         cache_name = os.path.basename(tag_filename)
 
@@ -277,22 +283,22 @@ def create_role(app, tag_filename, rootdir):
             # no cache present at all, initialise it
             report_info(app.env, 'No cache at all, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}}
+            app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': modification_time}}
         elif not app.env.doxylink_cache.get(cache_name):
             # Main cache is there but the specific sub-cache for this tag file is not
             report_info(app.env, 'Sub cache is missing, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
-        elif app.env.doxylink_cache[cache_name]['mtime'] < os.path.getmtime(tag_filename):
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
+        elif app.env.doxylink_cache[cache_name]['mtime'] < modification_time:
             # tag file has been modified since sub-cache creation
             report_info(app.env, 'Sub-cache is out of date, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         elif not app.env.doxylink_cache[cache_name].get('version') or app.env.doxylink_cache[cache_name].get('version') != __version__:
             # sub-cache doesn't have a version or the version doesn't match
             report_info(app.env, 'Sub-cache schema version doesn\'t match, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         else:
             # The cache is up to date
             report_info(app.env, 'Sub-cache is up-to-date')
