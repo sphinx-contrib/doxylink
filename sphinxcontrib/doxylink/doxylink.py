@@ -263,11 +263,13 @@ def create_role(app, tag_filename, rootdir):
 
     try:
         if is_url(tag_filename):
+            report_warning(app.env, standout('Tag file %s is a URL.' % tag_filename))
             response = requests.get(tag_filename)
             if response.status_code != 200:
                 raise FileNotFoundError(response.reason)
             tag_file = ET.fromstring(response.text)
         else:
+            report_warning(app.env, standout('Tag file %s is a NOT a URL.' % tag_filename))
             tag_file = ET.parse(tag_filename)
 
         cache_name = os.path.basename(tag_filename)
@@ -341,4 +343,5 @@ def create_role(app, tag_filename, rootdir):
 
 def setup_doxylink_roles(app):
     for name, (tag_filename, rootdir) in app.config.doxylink.items():
+        report_warning(app.env, standout('Working with tag file %s.' % tag_filename))
         app.add_role(name, create_role(app, tag_filename, rootdir))
