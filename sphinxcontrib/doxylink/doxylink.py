@@ -257,7 +257,7 @@ def join(*args):
     return ''.join(args)
 
 
-def create_role(app, tag_filename, rootdir):
+def create_role(app, tag_filename, rootdir, cache_name):
     # Tidy up the root directory path
     if not rootdir.endswith(('/', '\\')):
         rootdir = join(rootdir, os.sep)
@@ -272,8 +272,6 @@ def create_role(app, tag_filename, rootdir):
         else:
             tag_file = ET.parse(tag_filename)
             modification_time = os.path.getmtime(tag_filename)
-
-        cache_name = os.path.basename(tag_filename)
 
         report_info(app.env, bold('Checking tag file cache for %s: ' % cache_name))
         if not hasattr(app.env, 'doxylink_cache'):
@@ -343,4 +341,4 @@ def create_role(app, tag_filename, rootdir):
 
 def setup_doxylink_roles(app):
     for name, (tag_filename, rootdir) in app.config.doxylink.items():
-        app.add_role(name, create_role(app, tag_filename, rootdir))
+        app.add_role(name, create_role(app, tag_filename, rootdir, name))
