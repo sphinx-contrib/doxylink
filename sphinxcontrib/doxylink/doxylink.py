@@ -6,9 +6,8 @@ import requests
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
-from dateutil.parser import parse as parsedate
-from datetime import datetime, timezone
 
+from dateutil.parser import parse as parsedate
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
 from sphinx.util.console import bold, standout
@@ -269,9 +268,7 @@ def create_role(app, tag_filename, rootdir):
             if response.status_code != 200:
                 raise FileNotFoundError
             tag_file = ET.fromstring(response.text)
-            epoch_utc = datetime.utcfromtimestamp(0).replace(timezone.utc)
-            tag_file_date_utc = parsedate(response.headers['last-modified'])
-            modification_time = (tag_file_date_utc - epoch_utc).total_seconds()
+            modification_time = parsedate(response.headers['last-modified']).timestamp()
         else:
             tag_file = ET.parse(tag_filename)
             modification_time = os.path.getmtime(tag_filename)
