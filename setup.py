@@ -8,7 +8,7 @@ from sphinxcontrib.doxylink import __version__
 with open('README.rst') as stream:
     long_desc = stream.read()
 
-requires = ['Sphinx==0.6', 'pyparsing', 'python-dateutil', 'requests']
+requires = ['Sphinx>=0.6', 'pyparsing', 'python-dateutil', 'requests']
 
 setup(
     name='sphinxcontrib-doxylink',
