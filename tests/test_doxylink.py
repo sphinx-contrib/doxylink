@@ -116,3 +116,18 @@ def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
     matches = doxylink.match_piecewise(mapping.keys(), symbol)
     assert expected_matches == matches
     assert matches.issubset(mapping.keys())
+
+@pytest.mark.parametrize('str_to_validate, expected', [
+    ('http://example.com', True),
+    ('https://example.com/sub', True),
+    ('http://1.1.1.1', True),
+    ('http://1.1.1.1/sub', True),
+    ('http://localhost', True),
+    ('ftp://example.com', True),
+    ('example', False),
+    ('http_dir', False),
+    ('http://1.2.3', False),
+])
+def test_is_url(str_to_validate, expected):
+    result = doxylink.is_url(str_to_validate)
+    assert result == expected
