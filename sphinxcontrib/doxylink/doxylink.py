@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
+import requests
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
 
+from dateutil.parser import parse as parsedate
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
 from sphinx.util.console import bold, standout
@@ -36,6 +39,7 @@ def report_info(env, msg, docname=None, lineno=None):
     else:
         env.info(docname, msg, lineno=lineno)
 
+
 def report_warning(env, msg, docname=None, lineno=None):
     '''Convenience function for logging a warning
 
@@ -52,6 +56,24 @@ def report_warning(env, msg, docname=None, lineno=None):
             logger.warning(msg, location=docname)
     else:
         env.warn(docname, msg, lineno=lineno)
+
+def is_url(str_to_validate):
+    ''' Helper function to check if string contains URL
+
+    Args:
+        str_to_validate (str): String to validate as URL
+
+    Returns:
+        bool: True if given string is a URL, False otherwise
+    '''
+    regex = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return bool(re.match(regex, str_to_validate))
 
 
 class FunctionList:
@@ -235,37 +257,43 @@ def join(*args):
     return ''.join(args)
 
 
-def create_role(app, tag_filename, rootdir):
+def create_role(app, tag_filename, rootdir, cache_name):
     # Tidy up the root directory path
     if not rootdir.endswith(('/', '\\')):
         rootdir = join(rootdir, os.sep)
 
     try:
-        tag_file = ET.parse(tag_filename)
-
-        cache_name = os.path.basename(tag_filename)
+        if is_url(tag_filename):
+            response = requests.get(tag_filename)
+            if response.status_code != 200:
+                raise FileNotFoundError
+            tag_file = ET.fromstring(response.text)
+            modification_time = parsedate(response.headers['last-modified']).timestamp()
+        else:
+            tag_file = ET.parse(tag_filename)
+            modification_time = os.path.getmtime(tag_filename)
 
         report_info(app.env, bold('Checking tag file cache for %s: ' % cache_name))
         if not hasattr(app.env, 'doxylink_cache'):
             # no cache present at all, initialise it
             report_info(app.env, 'No cache at all, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}}
+            app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': modification_time}}
         elif not app.env.doxylink_cache.get(cache_name):
             # Main cache is there but the specific sub-cache for this tag file is not
             report_info(app.env, 'Sub cache is missing, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
-        elif app.env.doxylink_cache[cache_name]['mtime'] < os.path.getmtime(tag_filename):
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
+        elif app.env.doxylink_cache[cache_name]['mtime'] < modification_time:
             # tag file has been modified since sub-cache creation
             report_info(app.env, 'Sub-cache is out of date, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         elif not app.env.doxylink_cache[cache_name].get('version') or app.env.doxylink_cache[cache_name].get('version') != __version__:
             # sub-cache doesn't have a version or the version doesn't match
             report_info(app.env, 'Sub-cache schema version doesn\'t match, rebuilding...')
             mapping = SymbolMap(tag_file)
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': os.path.getmtime(tag_filename)}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         else:
             # The cache is up to date
             report_info(app.env, 'Sub-cache is up-to-date')
@@ -313,4 +341,4 @@ def create_role(app, tag_filename, rootdir):
 
 def setup_doxylink_roles(app):
     for name, (tag_filename, rootdir) in app.config.doxylink.items():
-        app.add_role(name, create_role(app, tag_filename, rootdir))
+        app.add_role(name, create_role(app, tag_filename, rootdir, name))
