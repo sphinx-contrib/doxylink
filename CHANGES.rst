@@ -1,8 +1,15 @@
 ()
 ==
 
-1.7 (Apr 27, 2019)
+1.7 (Jan 11, 2021)
 ==================
+
+- Add support for argument packs in C++11 [PR #20]
+- Add support for linking to remote tag files [issue #12]
+- Add support for multiple tag files with the same name [PR #27]
+
+1.6.1 (Apr 27, 2019)
+====================
 
 - Fix for deprecated `app.info()` [PR #23]
 
