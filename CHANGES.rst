@@ -1,5 +1,8 @@
-()
-==
+1.8 (Jan 28, 2021)
+==================
+
+- Add support for pages in addition to files [PR #25]
+- Add volatile as qualifier [PR #26]
 
 1.7 (Jan 11, 2021)
 ==================
