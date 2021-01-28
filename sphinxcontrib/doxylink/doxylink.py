@@ -179,7 +179,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
     function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
-        if compound_kind not in {'namespace', 'class', 'struct', 'file', 'define', 'group'}:
+        if compound_kind not in {'namespace', 'class', 'struct', 'file', 'define', 'group', 'page'}:
             continue
 
         compound_name = compound.findtext('name')
@@ -188,7 +188,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
         # TODO The following is a hack bug fix I think
         # Doxygen doesn't seem to include the file extension to <compound kind="file"><filename> entries
         # If it's a 'file' type, check if it _does_ have an extension, if not append '.html'
-        if compound_kind == 'file' and not os.path.splitext(compound_filename)[1]:
+        if compound_kind in ('file', 'page') and not os.path.splitext(compound_filename)[1]:
             compound_filename = compound_filename + '.html'
 
         # If it's a compound we can simply add it
