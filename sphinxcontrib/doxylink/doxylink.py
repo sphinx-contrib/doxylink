@@ -3,6 +3,7 @@
 import os
 import re
 import requests
+import time
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
@@ -264,49 +265,59 @@ def create_role(app, tag_filename, rootdir, cache_name):
 
     try:
         if is_url(tag_filename):
-            response = requests.get(tag_filename)
-            if response.status_code != 200:
+            hresponse = requests.head(tag_filename, allow_redirects=True)
+            if hresponse.status_code != 200:
                 raise FileNotFoundError
-            tag_file = ET.fromstring(response.text)
-            modification_time = parsedate(response.headers['last-modified']).timestamp()
+            try:
+                modification_time = parsedate(hresponse.headers['last-modified']).timestamp()
+            except KeyError:  # no last-modified header from server
+                modification_time = time.time()
+            def _parse():
+                response = requests.get(tag_filename, allow_redirects=True)
+                if response.status_code != 200:
+                    raise FileNotFoundError
+                return ET.fromstring(response.text)
         else:
-            tag_file = ET.parse(tag_filename)
             modification_time = os.path.getmtime(tag_filename)
+            def _parse():
+                return ET.parse(tag_filename)
 
         report_info(app.env, bold('Checking tag file cache for %s: ' % cache_name))
         if not hasattr(app.env, 'doxylink_cache'):
             # no cache present at all, initialise it
             report_info(app.env, 'No cache at all, rebuilding...')
-            mapping = SymbolMap(tag_file)
+            mapping = SymbolMap(_parse())
             app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': modification_time}}
         elif not app.env.doxylink_cache.get(cache_name):
             # Main cache is there but the specific sub-cache for this tag file is not
             report_info(app.env, 'Sub cache is missing, rebuilding...')
-            mapping = SymbolMap(tag_file)
+            mapping = SymbolMap(_parse())
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         elif app.env.doxylink_cache[cache_name]['mtime'] < modification_time:
             # tag file has been modified since sub-cache creation
             report_info(app.env, 'Sub-cache is out of date, rebuilding...')
-            mapping = SymbolMap(tag_file)
+            mapping = SymbolMap(_parse())
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         elif not app.env.doxylink_cache[cache_name].get('version') or app.env.doxylink_cache[cache_name].get('version') != __version__:
             # sub-cache doesn't have a version or the version doesn't match
             report_info(app.env, 'Sub-cache schema version doesn\'t match, rebuilding...')
-            mapping = SymbolMap(tag_file)
+            mapping = SymbolMap(_parse())
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         else:
             # The cache is up to date
             report_info(app.env, 'Sub-cache is up-to-date')
     except FileNotFoundError:
-        tag_file = None
+        tag_file_found = False
         report_warning(app.env, standout('Could not find tag file %s. Make sure your `doxylink` config variable is set correctly.' % tag_filename))
+    else:
+        tag_file_found = True
 
     def find_doxygen_link(name, rawtext, text, lineno, inliner, options={}, content=[]):
         # from :name:`title <part>`
         has_explicit_title, title, part = split_explicit_title(text)
         part = utils.unescape(part)
         warning_messages = []
-        if not tag_file:
+        if not tag_file_found:
             warning_messages.append('Could not find match for `%s` because tag file not found' % part)
             return [nodes.inline(title, title)], []
 
