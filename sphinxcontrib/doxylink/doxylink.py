@@ -336,6 +336,9 @@ def create_role(app, tag_filename, rootdir, cache_name):
         # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
         if os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
             full_url = join(rootdir, url.file)
+        elif rootdir.endswith('.pdf'):
+            full_url = join(rootdir, '#', url.file)
+            full_url = full_url.replace('.html#', '_')
         # But otherwise we need to add the relative path of the current document to the root source directory to the link
         else:
             relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.attributes['source']))
