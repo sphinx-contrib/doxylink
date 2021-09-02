@@ -260,7 +260,7 @@ def join(*args):
 
 def create_role(app, tag_filename, rootdir, cache_name):
     # Tidy up the root directory path
-    if not rootdir.endswith(('/', '\\')):
+    if not rootdir.endswith(('/', '\\')) and not rootdir.endswith('.pdf'):
         rootdir = join(rootdir, os.sep)
 
     try:
