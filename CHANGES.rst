@@ -1,3 +1,8 @@
+1.9 (Sep 02, 2021)
+==================
+
+- Add support for linking to Doxygen's PDF output [PR #32]
+
 1.8 (Jan 28, 2021)
 ==================
 
