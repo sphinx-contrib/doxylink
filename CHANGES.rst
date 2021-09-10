@@ -1,7 +1,7 @@
 1.10 (Sep 10, 2021)
 ==================
 
-- Fix links to files in Doxygen's PDF output [PR #33]
+- Fix links to files in Doxygen's PDF output [PR #34]
 
 1.9 (Sep 02, 2021)
 ==================
