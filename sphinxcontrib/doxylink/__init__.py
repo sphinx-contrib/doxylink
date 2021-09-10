@@ -1,4 +1,4 @@
-__version__ = '1.9'
+__version__ = '1.10'
 
 
 def setup(app):
