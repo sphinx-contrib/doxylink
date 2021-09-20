@@ -375,4 +375,9 @@ def setup_doxylink_roles(app):
         app.add_role(name, create_role(app, tag_filename, rootdir, name))
         if rootdir in app.config.doxylink_remote_pdf_files:
             url = app.config.doxylink_remote_pdf_files[rootdir]
-            download_file(app, url, rootdir)
+            if is_url(url):
+                download_file(app, url, rootdir)
+            else:
+                report_warning(app.env,
+                               standout("Expected a URL as value for `doxylink_remote_pdf_files` config variable; "
+                                        "got %s" % url))
