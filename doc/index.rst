@@ -131,7 +131,9 @@ Configuration values
 .. confval:: doxylink
 
     The environment is set up with a dictionary mapping the interpreted text role to a tuple of tag file and prefix.
-    The keys of this dictionary must be lower-case.
+    The keys of this dictionary must be lower-case. The prefix can be an absolute path or a path relative to `Sphinx'
+    output directory`_. It may be a path to the directory that contains your *index.html* or a path to your Doxygen pdf
+    file.
 
     .. code-block:: python
 
@@ -140,9 +142,29 @@ Configuration values
             'qtogre' : ('/home/matt/QtOgre.tag', '/home/matt/QtOgre/html/'),
         }
 
+    The second element of the tuple may also be a
+
+.. _`Sphinx' output directory`: https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.outdir
+
 .. confval:: add_function_parentheses
 
     A boolean that decides whether parentheses are appended to function and method role text. Default is ``True``.
+
+.. confval:: doxylink_remote_pdf_files
+
+    Doxylink can be configured to download remote Doxygen pdf files. You should use the URL as the second
+    element of the value of the ``doxylink`` dictionary **and** as key in the ``doxylink_remote_pdf_files`` dictionary,
+    which should contain the relative or absolute path for the output location as value. If the pdf file already exists
+    locally, it will not be downloaded and overwritten.
+
+    .. code-block:: python
+
+        doxylink = {
+            'polyvox' : ('/home/matt/PolyVox.tag', url_to_remote_doxygen_pdf),
+        }
+        doxylink_remote_pdf_files = {
+            url_to_remote_doxygen_pdf: '/home/matt/PolyVox/latex/polyvox_doxygen.pdf',
+        }
 
 Bug reports
 -----------

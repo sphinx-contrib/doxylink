@@ -354,6 +354,25 @@ def create_role(app, tag_filename, rootdir, cache_name):
     return find_doxygen_link
 
 
+def download_file(app, url, output_location):
+    if not os.path.isabs(output_location):
+        output_location = os.path.join(app.outdir, output_location)
+    if os.path.exists(output_location):
+        return
+    response = requests.get(url, allow_redirects=True)
+    if response.status_code != 200:
+        report_warning(app.env,
+                       standout("Could not find file %s. Make sure your `doxylink_remote_pdf_files` config variable is "
+                                "set correctly." % url))
+        return
+    os.makedirs(os.path.dirname(output_location), exist_ok=True)
+    with open(output_location, 'wb') as file:
+        file.write(response.content)
+
+
 def setup_doxylink_roles(app):
     for name, (tag_filename, rootdir) in app.config.doxylink.items():
         app.add_role(name, create_role(app, tag_filename, rootdir, name))
+        if rootdir in app.config.doxylink_remote_pdf_files:
+            output_location = app.config.doxylink_remote_pdf_files[rootdir]
+            download_file(app, rootdir, output_location)
