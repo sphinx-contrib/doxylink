@@ -132,8 +132,8 @@ Configuration values
 
     The environment is set up with a dictionary mapping the interpreted text role to a tuple of tag file and prefix.
     The keys of this dictionary must be lower-case. The prefix can be an absolute path or a path relative to `Sphinx'
-    output directory`_. It may be a path to the directory that contains your *index.html* or a path to your Doxygen pdf
-    file.
+    output directory`_. It may be a path to the directory that contains your *index.html* or the name of your Doxygen
+    pdf file.
 
     .. code-block:: python
 
@@ -141,8 +141,6 @@ Configuration values
             'polyvox' : ('/home/matt/PolyVox.tag', '/home/matt/PolyVox/html/'),
             'qtogre' : ('/home/matt/QtOgre.tag', '/home/matt/QtOgre/html/'),
         }
-
-    The second element of the tuple may also be a
 
 .. _`Sphinx' output directory`: https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.outdir
 
