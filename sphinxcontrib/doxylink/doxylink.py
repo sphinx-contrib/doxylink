@@ -362,7 +362,7 @@ def download_file(app, url, output_location):
     response = requests.get(url, allow_redirects=True)
     if response.status_code != 200:
         report_warning(app.env,
-                       standout("Could not find file %s. Make sure your `doxylink_remote_pdf_files` config variable is "
+                       standout("Could not find file %r. Make sure your `doxylink_remote_pdf_files` config variable is "
                                 "set correctly." % url))
         return
     os.makedirs(os.path.dirname(output_location), exist_ok=True)
@@ -380,4 +380,4 @@ def setup_doxylink_roles(app):
             else:
                 report_warning(app.env,
                                standout("Expected a URL as value for `doxylink_remote_pdf_files` config variable; "
-                                        "got %s" % url))
+                                        "got %r" % url))
