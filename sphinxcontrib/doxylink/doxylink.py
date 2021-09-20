@@ -374,5 +374,5 @@ def setup_doxylink_roles(app):
     for name, (tag_filename, rootdir) in app.config.doxylink.items():
         app.add_role(name, create_role(app, tag_filename, rootdir, name))
         if rootdir in app.config.doxylink_remote_pdf_files:
-            output_location = app.config.doxylink_remote_pdf_files[rootdir]
-            download_file(app, rootdir, output_location)
+            url = app.config.doxylink_remote_pdf_files[rootdir]
+            download_file(app, url, rootdir)

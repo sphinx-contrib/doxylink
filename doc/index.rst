@@ -150,18 +150,18 @@ Configuration values
 
 .. confval:: doxylink_remote_pdf_files
 
-    Doxylink can be configured to download remote Doxygen pdf files. You should use the URL as the second
+    Doxylink can be configured to download remote Doxygen pdf files. You should use the output file name as the second
     element of the value of the ``doxylink`` dictionary **and** as key in the ``doxylink_remote_pdf_files`` dictionary,
-    which should contain the relative or absolute path for the output location as value. If the pdf file already exists
-    locally, it will not be downloaded and overwritten.
+    which should contain the URL to the remote location as value. If the pdf file already exists locally, it will not
+    be downloaded.
 
     .. code-block:: python
 
         doxylink = {
-            'polyvox' : ('/home/matt/PolyVox.tag', url_to_remote_doxygen_pdf),
+            'polyvox' : ('/home/matt/PolyVox.tag', 'polyvox_doxygen.pdf'),
         }
         doxylink_remote_pdf_files = {
-            url_to_remote_doxygen_pdf: '/home/matt/PolyVox/latex/polyvox_doxygen.pdf',
+            'polyvox_doxygen.pdf': url_to_remote_doxygen_pdf,
         }
 
 Bug reports
