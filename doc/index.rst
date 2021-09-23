@@ -132,15 +132,20 @@ Configuration values
 
     The environment is set up with a dictionary mapping the interpreted text role to a tuple of tag file and prefix.
     The keys of this dictionary must be lower-case. The prefix can be an absolute path or a path relative to `Sphinx'
-    output directory`_. It may be a path to the directory that contains your *index.html* or the name of your Doxygen
-    pdf file.
+    output directory`_. An optional third element with the name of a Doxygen pdf file may be added. This will be used
+    when Sphinx uses the LaTeX builder. Otherwise, the second element of the tuple will be used to link to.
 
     .. code-block:: python
 
         doxylink = {
-            'polyvox' : ('/home/matt/PolyVox.tag', '/home/matt/PolyVox/html/'),
-            'qtogre' : ('/home/matt/QtOgre.tag', '/home/matt/QtOgre/html/'),
+            'polyvox' : ('/home/matt/PolyVox.tag', '/home/matt/PolyVox/html/', 'polyvox_doxygen.pdf'),
+            'qtogre' : ('/home/matt/QtOgre.tag', '/home/matt/QtOgre/html/', 'qtogre_doxygen.pdf'),
         }
+
+    .. note::
+
+        The links in your pdf document to your Doxygen pdf file(s) may not work (properly) in a browser or a basic
+        PDF-reader. They should work in Adobe Reader for example.
 
 .. _`Sphinx' output directory`: https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.outdir
 
@@ -148,21 +153,21 @@ Configuration values
 
     A boolean that decides whether parentheses are appended to function and method role text. Default is ``True``.
 
-.. confval:: doxylink_remote_pdf_files
+.. confval:: doxylink_pdf_files
 
-    Doxylink can be configured to download remote Doxygen pdf files. You should use the output file name as the second
-    element of the value of the ``doxylink`` dictionary **and** as key in the ``doxylink_remote_pdf_files`` dictionary,
-    which should contain the URL to the remote location as value. If the pdf file already exists locally, it will not
-    be downloaded.
+    Doxylink can be configured to download remote Doxygen pdf files or copy them from a local location.
+    You should use the output file name as the third
+    element of the value of the ``doxylink`` dictionary **and** as key in the ``doxylink_pdf_files`` dictionary,
+    which should contain the URL to the remote location or local location as value.
+    If the pdf file already exists locally, it will not be downloaded or overwritten.
 
     .. code-block:: python
 
-        doxylink = {
-            'polyvox' : ('/home/matt/PolyVox.tag', 'polyvox_doxygen.pdf'),
-        }
-        doxylink_remote_pdf_files = {
+        doxylink_pdf_files = {
             'polyvox_doxygen.pdf': url_to_remote_doxygen_pdf,
+            'qtogre_doxygen.pdf': '/home/matt/qtogre/doxygen.pdf',
         }
+
 
 Bug reports
 -----------
