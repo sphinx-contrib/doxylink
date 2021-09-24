@@ -355,6 +355,23 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
     return find_doxygen_link
 
 
+def extract_configuration(values):
+    if len(values) == 3:
+        tag_filename, rootdir, pdf_filename = values
+    elif len(values) == 2:
+        tag_filename = values[0]
+        if values[1].endswith('.pdf'):
+            pdf_filename = values[1]
+            rootdir = ""
+        else:
+            rootdir = values[1]
+            pdf_filename = ""
+    else:
+        raise ValueError("Config variable `doxylink` is incorrectly configured. Expected a tuple with 2 to 3 "
+                            "elements; got %s" % values)
+    return tag_filename, rootdir, pdf_filename
+
+
 def fetch_file(app, source, output_path):
     """Fetches file and puts it in the desired location if it does not exist yet.
 
@@ -425,18 +442,6 @@ def process_configuration(app, tag_filename, rootdir, pdf_filename):
 
 def setup_doxylink_roles(app):
     for name, values in app.config.doxylink.items():
-        if len(values) == 3:
-            tag_filename, rootdir, pdf_filename = values
-        elif len(values) == 2:
-            tag_filename = values[0]
-            if values[1].endswith('.pdf'):
-                pdf_filename = values[1]
-                rootdir = ""
-            else:
-                rootdir = values[1]
-                pdf_filename = ""
-        else:
-            raise ValueError("Config variable `doxylink` is incorrectly configured. Expected a tuple with 2 to 3 "
-                             "elements; got %s" % values)
+        tag_filename, rootdir, pdf_filename = extract_configuration(values)
         process_configuration(app, tag_filename, rootdir, pdf_filename)
         app.add_role(name, create_role(app, tag_filename, rootdir, name, pdf=pdf_filename))
