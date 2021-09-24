@@ -159,7 +159,7 @@ Configuration values
     You should use the output file name as the third
     element of the value of the ``doxylink`` dictionary **and** as key in the ``doxylink_pdf_files`` dictionary,
     which should contain the URL to the remote location or local location as value.
-    If the pdf file already exists locally, it will not be downloaded or overwritten.
+    If the pdf file already exists locally in Sphinx' output directory, it will not be downloaded or overwritten.
 
     .. code-block:: python
 
