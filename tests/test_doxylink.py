@@ -4,7 +4,7 @@ import os
 import os.path
 import subprocess
 import xml.etree.ElementTree as ET
-from unittest.mock import Mock
+from unittest.mock import MagicMock
 
 import pytest
 from testfixtures import LogCapture
@@ -158,12 +158,12 @@ def test_extract_configuration_fail(values):
 
 @pytest.mark.parametrize('tag_filename, rootdir, pdf_filename, builder', [
     ('doxygen/project.tag', 'https://example.com', '', 'html'),
-    ('doxygen/project.tag', '.', '', 'latex'),
+    ('doxygen/project.tag', '', 'doxygen.pdf', 'latex'),
     ('doxygen/project.tag', 'html/doxygen', 'doxygen.pdf', 'latex'),
 ])
 def test_process_configuration_pass(tag_filename, rootdir, pdf_filename, builder):
-    app = Mock()
-    app.builder.format == builder
+    app = MagicMock()
+    app.builder.format = builder
     with LogCapture() as l:
         doxylink.process_configuration(app, tag_filename, rootdir, pdf_filename)
     l.check()
@@ -181,7 +181,7 @@ def test_process_configuration_pass(tag_filename, rootdir, pdf_filename, builder
      "Consider linking to a Doxygen pdf file instead as third element of the tuple in the `doxylink` config variable."),
 ])
 def test_process_configuration_warn(rootdir, pdf_filename, builder, msg):
-    app = Mock()
+    app = MagicMock()
     app.builder.format = builder
     with LogCapture() as l:
         doxylink.process_configuration(app, 'doxygen/project.tag', rootdir, pdf_filename)
