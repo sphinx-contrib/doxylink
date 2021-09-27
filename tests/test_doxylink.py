@@ -4,8 +4,10 @@ import os
 import os.path
 import subprocess
 import xml.etree.ElementTree as ET
+from unittest.mock import MagicMock
 
 import pytest
+from testfixtures import LogCapture
 
 from sphinxcontrib.doxylink import doxylink
 
@@ -131,3 +133,56 @@ def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
 def test_is_url(str_to_validate, expected):
     result = doxylink.is_url(str_to_validate)
     assert result == expected
+
+
+@pytest.mark.parametrize('values, out_rootdir, out_pdf', [
+    (['doxygen/project.tag', 'https://example.com'], 'https://example.com', ''),
+    (['doxygen/project.tag', 'https://example.com', ''], 'https://example.com', ''),
+    (['doxygen/project.tag', 'doxygen.pdf'], '', 'doxygen.pdf'),
+    (['doxygen/project.tag', 'https://example.com', 'doxygen.pdf'], 'https://example.com', 'doxygen.pdf'),
+])
+def test_extract_configuration_pass(values, out_rootdir, out_pdf):
+    tag_filename, rootdir, pdf_filename = doxylink.extract_configuration(values)
+    assert rootdir == out_rootdir
+    assert pdf_filename == out_pdf
+
+
+@pytest.mark.parametrize('values', [
+    (['doxygen/project.tag']),
+    (['doxygen/project.tag', 'https://example.com', 'doxygen.pdf', 'fail']),
+])
+def test_extract_configuration_fail(values):
+    with pytest.raises(ValueError):
+        doxylink.extract_configuration(values)
+
+
+@pytest.mark.parametrize('tag_filename, rootdir, pdf_filename, builder', [
+    ('doxygen/project.tag', 'https://example.com', '', 'html'),
+    ('doxygen/project.tag', '', 'doxygen.pdf', 'latex'),
+    ('doxygen/project.tag', 'html/doxygen', 'doxygen.pdf', 'latex'),
+])
+def test_process_configuration_pass(tag_filename, rootdir, pdf_filename, builder):
+    app = MagicMock()
+    app.builder.format = builder
+    with LogCapture() as l:
+        doxylink.process_configuration(app, tag_filename, rootdir, pdf_filename)
+    l.check()
+
+
+@pytest.mark.parametrize('rootdir, pdf_filename, builder, msg', [
+    ('', 'doxygen.pdf', 'html',
+     "Linking from HTML to Doxygen pdf ('doxygen.pdf') is not supported. "
+     "Consider setting the root directory of Doxygen's HTML output as value instead."),
+    ('https://example.com', '', 'latex',
+     "Linking from PDF to remote Doxygen html is not supported yet; got 'https://example.com'."
+     "Consider linking to a Doxygen pdf file instead as third element of the tuple in the `doxylink` config variable."),
+    ('html/doxygen', '', 'latex',
+     "Linking from PDF to local Doxygen html is not possible; got 'html/doxygen'."
+     "Consider linking to a Doxygen pdf file instead as third element of the tuple in the `doxylink` config variable."),
+])
+def test_process_configuration_warn(rootdir, pdf_filename, builder, msg):
+    app = MagicMock()
+    app.builder.format = builder
+    with LogCapture() as l:
+        doxylink.process_configuration(app, 'doxygen/project.tag', rootdir, pdf_filename)
+    l.check(('sphinx.sphinxcontrib.doxylink.doxylink', 'WARNING', msg))

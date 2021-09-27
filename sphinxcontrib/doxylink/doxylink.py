@@ -3,6 +3,7 @@
 import os
 import re
 import requests
+import shutil
 import time
 import xml.etree.ElementTree as ET
 import urllib.parse
@@ -258,9 +259,9 @@ def join(*args):
     return ''.join(args)
 
 
-def create_role(app, tag_filename, rootdir, cache_name):
+def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
     # Tidy up the root directory path
-    if not rootdir.endswith(('/', '\\')) and not rootdir.endswith('.pdf'):
+    if not rootdir.endswith(('/', '\\')):
         rootdir = join(rootdir, os.sep)
 
     try:
@@ -332,14 +333,14 @@ def create_role(app, tag_filename, rootdir, cache_name):
                                      'Error reported was: %s' % (part, error), line=lineno)
             return [nodes.inline(title, title)], []
 
-        # If it's an absolute path then the link will work regardless of the document directory
-        # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
-        if os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
-            full_url = join(rootdir, url.file)
-        elif rootdir.endswith('.pdf'):
-            full_url = join(rootdir, '#', url.file)
+        if pdf:
+            full_url = join(pdf, '#', url.file)
             full_url = full_url.replace('.html#', '_')  # for links to variables and functions
             full_url = full_url.replace('.html', '')  # for links to files
+        # If it's an absolute path then the link will work regardless of the document directory
+        # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
+        elif os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
+            full_url = join(rootdir, url.file)
         # But otherwise we need to add the relative path of the current document to the root source directory to the link
         else:
             relative_path_to_docsrc = os.path.relpath(app.env.srcdir, os.path.dirname(inliner.document.attributes['source']))
@@ -354,6 +355,93 @@ def create_role(app, tag_filename, rootdir, cache_name):
     return find_doxygen_link
 
 
+def extract_configuration(values):
+    if len(values) == 3:
+        tag_filename, rootdir, pdf_filename = values
+    elif len(values) == 2:
+        tag_filename = values[0]
+        if values[1].endswith('.pdf'):
+            pdf_filename = values[1]
+            rootdir = ""
+        else:
+            rootdir = values[1]
+            pdf_filename = ""
+    else:
+        raise ValueError("Config variable `doxylink` is incorrectly configured. Expected a tuple with 2 to 3 "
+                            "elements; got %s" % values)
+    return tag_filename, rootdir, pdf_filename
+
+
+def fetch_file(app, source, output_path):
+    """Fetches file and puts it in the desired location if it does not exist yet.
+
+    Local files will be copied and remote files will be downloaded.
+    Directories in the ``output_path`` get created if needed.
+
+    Args:
+        app: Sphinx' application instance
+        source (str): Path to local file or URL to remote file
+        output_path (str): Path with filename to copy/download the source to, relative to Sphinx' output directory
+    """
+    if not os.path.isabs(output_path):
+        output_path = os.path.join(app.outdir, output_path)
+    if os.path.exists(output_path):
+        return
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    if is_url(source):
+        response = requests.get(source, allow_redirects=True)
+        if response.status_code != 200:
+            report_warning(app.env,
+                        standout("Could not find file %r. Make sure your `doxylink_pdf_files` config variable is "
+                                 "set correctly." % source))
+            return
+        with open(output_path, 'wb') as file:
+            file.write(response.content)
+    else:
+        if not os.path.isabs(source):
+            source = os.path.join(app.outdir, source)
+        if os.path.exists(source):
+            shutil.copy(source, output_path)
+        else:
+            report_warning(app.env,
+                        standout("Expected a URL or a path that exists as value for `doxylink_pdf_files` "
+                                    "config variable; got %r" % source))
+
+
+def process_configuration(app, tag_filename, rootdir, pdf_filename):
+    """Processes the configured values for ``doxylink`` and ``doxylink_pdf_files`` and warns about potential issues.
+
+    The type of builder decides which values shall be used.
+
+    Args:
+        app: Sphinx' application instance
+        tag_filename (str): Path to the Doxygen tag file
+        rootdir (str): Path to the root directory of Doxygen HTML documentation
+        pdf_filename (str): Path to the pdf file; may be empty when LaTeX builder is not used
+    """
+    if app.builder.format == 'latex':
+        if not pdf_filename:
+            if is_url(rootdir):
+                report_warning(app.env,
+                               "Linking from PDF to remote Doxygen html is not supported yet; got %r."
+                               "Consider linking to a Doxygen pdf file instead as "
+                               "third element of the tuple in the `doxylink` config variable." % rootdir)
+            else:
+                report_warning(app.env,
+                               "Linking from PDF to local Doxygen html is not possible; got %r."
+                               "Consider linking to a Doxygen pdf file instead as third element of the tuple in the "
+                               "`doxylink` config variable." % rootdir)
+        elif pdf_filename in app.config.doxylink_pdf_files:
+            source = app.config.doxylink_pdf_files[pdf_filename]
+            fetch_file(app, source, pdf_filename)
+    elif pdf_filename and not rootdir:
+        report_warning(app.env,
+                       "Linking from HTML to Doxygen pdf (%r) is not supported. Consider setting "
+                       "the root directory of Doxygen's HTML output as value instead." % pdf_filename)
+
+
 def setup_doxylink_roles(app):
-    for name, (tag_filename, rootdir) in app.config.doxylink.items():
-        app.add_role(name, create_role(app, tag_filename, rootdir, name))
+    for name, values in app.config.doxylink.items():
+        tag_filename, rootdir, pdf_filename = extract_configuration(values)
+        process_configuration(app, tag_filename, rootdir, pdf_filename)
+        app.add_role(name, create_role(app, tag_filename, rootdir, name, pdf=pdf_filename))

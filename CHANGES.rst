@@ -1,3 +1,8 @@
+1.11 (Sep 22, 2021)
+==================
+
+- Add feature to download remote and copy local pdf files [PR #35]
+
 1.10 (Sep 10, 2021)
 ==================
 
