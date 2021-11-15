@@ -333,7 +333,7 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
                                      'Error reported was: %s' % (part, error), line=lineno)
             return [nodes.inline(title, title)], []
 
-        if pdf:
+        if pdf and app.builder.format == 'latex':
             full_url = join(pdf, '#', url.file)
             full_url = full_url.replace('.html#', '_')  # for links to variables and functions
             full_url = full_url.replace('.html', '')  # for links to files
