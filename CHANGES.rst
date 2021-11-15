@@ -1,3 +1,8 @@
+1.11.1 (Nov 15, 2021)
+=====================
+
+- Fix: only link to Doxygen's PDF output when Sphinx uses the latex format [PR #36]
+
 1.11 (Sep 22, 2021)
 ==================
 
