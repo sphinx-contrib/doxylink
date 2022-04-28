@@ -1,3 +1,9 @@
+1.12 (Apr 25, 2022)
+=====================
+
+- Add support for sphinx parallel read/write [PR #37]
+
+
 1.11.1 (Nov 15, 2021)
 =====================
 
