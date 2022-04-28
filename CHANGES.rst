@@ -1,4 +1,4 @@
-1.12 (Apr 25, 2022)
+1.11.2 (Apr 28, 2022)
 =====================
 
 - Add support for sphinx parallel read/write [PR #37]
