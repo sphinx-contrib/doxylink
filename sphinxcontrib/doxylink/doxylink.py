@@ -18,7 +18,7 @@ from sphinx import __version__ as sphinx_version
 if sphinx_version >= '1.6.0':
     from sphinx.util.logging import getLogger
 
-from ..doxylink import __version__
+from . import __version__
 from .parsing import normalise, ParseException
 
 Entry = namedtuple('Entry', ['kind', 'file'])

@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: © 2022 Matt Williams <matt@milliams.com>
+# SPDX-License-Identifier: BSD
+
+[tool.poetry]
+name = "sphinxcontrib-doxylink"
+packages = [{include = "sphinxcontrib"}]
+version = "1.11.2"
+description = "Sphinx extension for linking to Doxygen documentation."
+readme = "README.rst"
+documentation = "https://sphinxcontrib-doxylink.readthedocs.io"
+authors = ["Matt Williams <matt@milliams.com>"]
+license = "BSD"
+keywords = ["sphinx", "doxygen", "documentation", "c++"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+Sphinx = ">=1.6"
+pyparsing = "^3.0.8"
+python-dateutil = "^2.8.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+testfixtures = "^6.18.5"
+
+[tool.pytest.ini_options]
+testpaths = ["sphinxcontrib", "tests"]
+addopts = "--doctest-modules"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
