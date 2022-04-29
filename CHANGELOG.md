@@ -6,6 +6,8 @@ SPDX-License-Identifier: BSD
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Update packaging to use Poetry [PR #39]
 
 ## [1.11.2] - 2022-04-28
 ### Fixed
