@@ -79,7 +79,12 @@ def normalise(symbol: str) -> Tuple[str, str]:
     """
 
     try:
-        bracket_location = symbol.index('(')
+        if "operator()" in symbol:
+            # The ``operator()`` method is special enough to warant an override
+            # We can't just split on ``(`` so find the start of the arg list manually
+            bracket_location = symbol.index("operator()(") + len("operator()")
+        else:
+            bracket_location = symbol.index('(')
         # Split the input string into everything before the opening bracket and everything else
         function_name = symbol[:bracket_location]
         arglist_input_string = symbol[bracket_location:]

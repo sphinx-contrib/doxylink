@@ -6,6 +6,8 @@ SPDX-License-Identifier: BSD
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Handle the `operator()` method correctly
 ### Changed
 - Update packaging to use Poetry [PR #39]
 

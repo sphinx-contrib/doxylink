@@ -108,6 +108,8 @@ functions = [
     ('Volume::getVoxelAt(uint16_t uXPos, uint16_t uYPos, uint16_t uZPos, VoxelType tDefault=VoxelType()) const', ('Volume::getVoxelAt', '(uint16_t, uint16_t, uint16_t, VoxelType) const')),
     ('PolyVox::Array::operator[]', ('PolyVox::Array::operator[]', '')),
     ('operator[]', ('operator[]', '')),
+    ('MyClass::operator()', ('MyClass::operator()', '')),
+    ('operator()', ('operator()', '')),
 ]
 
 multiple_namespaces = [
