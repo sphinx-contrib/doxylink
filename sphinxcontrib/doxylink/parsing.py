@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Optional,\
+from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt,\
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString,\
     nestedExpr, ParseResults, oneOf, ungroup, Keyword
 
@@ -8,8 +8,8 @@ from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Optional,\
 LPAR, RPAR, LBRACK, RBRACK, COMMA, EQ = map(Literal, "()[],=")
 
 # Qualifier to go in front of type in the argument list (unsigned const int foo)
-qualifier = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
-qualifier = ungroup(qualifier.addParseAction(' '.join))
+qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
+qualifier = ungroup(qualifier_grouped.addParseAction(' '.join))
 
 
 def turn_parseresults_to_list(s, loc, toks):
@@ -36,7 +36,7 @@ parentheses_pair = LPAR + SkipTo(RPAR) + RPAR
 square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
 
 # TODO I guess this should be a delimited list (by '::') of name and angle brackets
-nonfundamental_input_type = Combine(Word(alphanums + ':_') + Optional(angle_bracket_pair + Optional(Word(alphanums + ':_'))))
+nonfundamental_input_type = Combine(Word(alphanums + ':_') + Opt(angle_bracket_pair + Opt(Word(alphanums + ':_'))))
 fundamental_input_type = OneOrMore(Keyword('bool') ^ Keyword('short') ^ Keyword('int') ^ Keyword('long') ^ Keyword('signed') ^ Keyword('unsigned') ^ Keyword('char') ^ Keyword('float') ^ Keyword('double'))
 input_type = fundamental_input_type ^ nonfundamental_input_type
 
@@ -47,23 +47,23 @@ number = Word('-.' + nums)
 input_name = OneOrMore(Word(alphanums + '_') | angle_bracket_pair | parentheses_pair | square_bracket_pair)
 
 # Grab the '&', '*' or '**' type bit in (const QString & foo, int ** bar)
-pointer_or_reference = Combine(oneOf('* &') + Optional('...'))
+pointer_or_reference = Combine(oneOf('* &') + Opt('...'))
 
 # The '=QString()' or '=false' bit in (int foo = 4, bool bar = false)
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
-argument_type = Optional(qualifier, default='')("qualifier") + \
+argument_type = Opt(qualifier, default='')("qualifier") + \
                 input_type('input_type').setParseAction(' '.join) + \
-                Optional(pointer_or_reference, default='')("pointer_or_reference1") + \
-                Optional('const')('const_pointer_or_reference') + \
-                Optional(pointer_or_reference, default='')("pointer_or_reference2")
+                Opt(pointer_or_reference, default='')("pointer_or_reference1") + \
+                Opt('const')('const_pointer_or_reference') + \
+                Opt(pointer_or_reference, default='')("pointer_or_reference2")
 
 # Argument + variable name + default
-argument = Group(argument_type('argument_type') + Optional(input_name) + Optional(default_value))
+argument = Group(argument_type('argument_type') + Opt(input_name) + Opt(default_value))
 
 # List of arguments in parentheses with an optional 'const' on the end
-arglist = LPAR + delimitedList(argument)('arg_list') + Optional(COMMA + '...')('var_args') + RPAR
+arglist = LPAR + delimitedList(argument)('arg_list') + Opt(COMMA + '...')('var_args') + RPAR
 
 
 def normalise(symbol: str) -> Tuple[str, str]:

@@ -37,3 +37,9 @@ class MyClass
 
 /// A simple macro
 #define MY_MACRO(x) foo(x)
+
+// A simple enum
+enum Color { red, green, blue };
+
+// An enum class
+enum class Color_c { red, green, blue };

@@ -6,11 +6,12 @@ import time
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
+from typing import Dict, Iterable, MutableMapping, Set, Union
 
 from dateutil.parser import parse as parsedate
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
-from sphinx.util.console import bold, standout
+from sphinx.util.console import bold, standout  # type: ignore  # These are not explicitly exported as functions
 from sphinx import __version__ as sphinx_version
 
 if sphinx_version >= '1.6.0':
@@ -57,7 +58,7 @@ def report_warning(env, msg, docname=None, lineno=None):
     else:
         env.warn(docname, msg, lineno=lineno)
 
-def is_url(str_to_validate):
+def is_url(str_to_validate: str) -> bool:
     ''' Helper function to check if string contains URL
 
     Args:
@@ -80,7 +81,7 @@ class FunctionList:
     """A FunctionList maps argument lists to specific entries"""
     def __init__(self):
         self.kind = 'function_list'
-        self._arglist = {}  # type: MutableMapping[str, str]
+        self._arglist: MutableMapping[str, str] = {}
 
     def __getitem__(self, arglist: str) -> Entry:
         # If the user has requested a specific function through specifying an arglist then get the right anchor
@@ -98,6 +99,9 @@ class FunctionList:
 
     def add_overload(self, arglist: str, file: str) -> None:
         self._arglist[arglist] = file
+
+    def __repr__(self):
+        return f"FunctionList({self._arglist})"
 
 
 class SymbolMap:
@@ -151,7 +155,7 @@ class SymbolMap:
         return entry
 
 
-def parse_tag_file(doc: ET.ElementTree) -> dict:
+def parse_tag_file(doc: ET.ElementTree) -> Dict[str, Union[Entry, FunctionList]]:
     """
     Takes in an XML tree from a Doxygen tag file and returns a dictionary that looks something like:
 
@@ -175,7 +179,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
     :return: a dictionary mapping fully qualified symbols to files
     """
 
-    mapping = {}  # type: MutableMapping[str, Union[Entry, FunctionList]]
+    mapping: Dict[str, Union[Entry, FunctionList]] = {}
     function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
@@ -184,6 +188,11 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
 
         compound_name = compound.findtext('name')
         compound_filename = compound.findtext('filename')
+
+        if compound_name is None:
+            raise KeyError(f"Compound does not have a name")
+        if compound_filename is None:
+            raise KeyError(f"Compound {compound_name} does not have a filename")
 
         # TODO The following is a hack bug fix I think
         # Doxygen doesn't seem to include the file extension to <compound kind="file"><filename> entries
@@ -198,13 +207,17 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
             # If the member doesn't have an <anchorfile> element, use the parent compounds <filename> instead
             # This is the way it is in the qt.tag and is perhaps an artefact of old Doxygen
             anchorfile = member.findtext('anchorfile') or compound_filename
-            member_symbol = compound_name + '::' + member.findtext('name')
+            member_name = member.findtext('name')
+            if member_name is None:
+                raise KeyError(f"Member of {compound_name} does not have a name")
+            member_symbol = compound_name + '::' + member_name
             member_kind = member.get('kind')
             arglist_text = member.findtext('./arglist')  # If it has an <arglist> then we assume it's a function. Empty <arglist> returns '', not None. Things like typedefs and enums can have empty arglists
 
-            if arglist_text and member_kind not in {'variable', 'typedef', 'enumeration'}:
+            if arglist_text and member_kind not in {'variable', 'typedef', 'enumeration', "enumvalue"}:
                 function_list.append((member_symbol, arglist_text, member_kind, join(anchorfile, '#', member.findtext('anchor'))))
             else:
+                # Put the simple things directly into the mapping
                 mapping[member_symbol] = Entry(kind=member.get('kind'), file=join(anchorfile, '#', member.findtext('anchor')))
 
     for member_symbol, arglist, kind, anchor_link in function_list:
@@ -213,16 +226,17 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
         except ParseException as e:
             print(f'Skipping {kind} {member_symbol}{arglist}. Error reported from parser was: {e}')
         else:
-            if mapping.get(member_symbol) and isinstance(mapping[member_symbol], FunctionList):
-                mapping[member_symbol].add_overload(normalised_arglist, anchor_link)
-            else:
+            if member_symbol not in mapping:
                 mapping[member_symbol] = FunctionList()
-                mapping[member_symbol].add_overload(normalised_arglist, anchor_link)
+            member_mapping = mapping[member_symbol]
+            if not isinstance(member_mapping, FunctionList):
+                raise RuntimeError(f"Cannot add override to non-function '{member_symbol}'")
+            member_mapping.add_overload(normalised_arglist, anchor_link)
 
     return mapping
 
 
-def match_piecewise(candidates: set, symbol: str, sep: str='::') -> set:
+def match_piecewise(candidates: Iterable[str], symbol: str, sep: str='::') -> set:
     """
     Match the requested symbol reverse piecewise (split on ``::``) against the candidates.
     This allows you to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``

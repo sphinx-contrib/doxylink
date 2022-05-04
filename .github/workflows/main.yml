@@ -33,6 +33,8 @@ jobs:
         run: pip install poetry
       - name: Setup package
         run: poetry install
+      - name: Run mypy
+        run: poetry run mypy --install-types --non-interactive sphinxcontrib/doxylink
       - name: Run pytest
         run: poetry run pytest
       - name: Test that package builds
