@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import os
 import re
 import requests
@@ -213,7 +211,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
         try:
             normalised_arglist = normalise(member_symbol + arglist)[1]
         except ParseException as e:
-            print('Skipping %s %s%s. Error reported from parser was: %s' % (kind, member_symbol, arglist, e))
+            print(f'Skipping {kind} {member_symbol}{arglist}. Error reported from parser was: {e}')
         else:
             if mapping.get(member_symbol) and isinstance(mapping[member_symbol], FunctionList):
                 mapping[member_symbol].add_overload(normalised_arglist, anchor_link)
@@ -325,7 +323,7 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
         try:
             url = app.env.doxylink_cache[cache_name]['mapping'][part]
         except LookupError as error:
-            inliner.reporter.warning('Could not find match for `%s` in `%s` tag file. Error reported was %s' % (part, tag_filename, error), line=lineno)
+            inliner.reporter.warning(f'Could not find match for `{part}` in `{tag_filename}` tag file. Error reported was {error}', line=lineno)
             return [nodes.inline(title, title)], []
         except ParseException as error:
             inliner.reporter.warning('Error while parsing `%s`. Is not a well-formed C++ function call or symbol.'

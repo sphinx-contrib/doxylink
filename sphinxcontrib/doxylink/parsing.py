@@ -97,7 +97,7 @@ def normalise(symbol: str) -> Tuple[str, str]:
         arglist_input_string_no_spaces = arglist_input_string.replace(' override', '').replace(' final', '').replace(' ', '')
         if arglist_input_string_no_spaces in ('()', '()=0', '()=default'):
             return function_name, '()'
-        elif arglist_input_string_no_spaces in ('()const', '()const=0'):
+        if arglist_input_string_no_spaces in ('()const', '()const=0'):
             return function_name, '() const'
 
     # By now we're left with something like "(blah, blah)", "(blah, blah) const" or "(blah, blah) const =0"

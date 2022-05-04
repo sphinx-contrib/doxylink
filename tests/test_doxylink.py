@@ -34,7 +34,7 @@ def examples_tag_file():
     if not os.path.isfile(tagfile):
         recreate = True
     else:
-        latest_file_changed = max([datetime.datetime.fromtimestamp(os.stat(f).st_mtime) for f in matches])
+        latest_file_changed = max(datetime.datetime.fromtimestamp(os.stat(f).st_mtime) for f in matches)
         tagfile_changed = datetime.datetime.fromtimestamp(os.stat(tagfile).st_mtime)
         if latest_file_changed > tagfile_changed:
             recreate = True
