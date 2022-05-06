@@ -4,7 +4,7 @@
 [tool.poetry]
 name = "sphinxcontrib-doxylink"
 packages = [{include = "sphinxcontrib"}]
-version = "1.11.2"
+version = "1.12.0"
 description = "Sphinx extension for linking to Doxygen documentation."
 readme = "README.rst"
 documentation = "https://sphinxcontrib-doxylink.readthedocs.io"

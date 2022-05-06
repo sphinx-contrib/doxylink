@@ -6,6 +6,8 @@ SPDX-License-Identifier: BSD
 # Changelog
 
 ## [Unreleased]
+
+## [1.12.0] - 2022-05-06
 ### Fixed
 - Handle the `operator()` method correctly
 ### Changed
