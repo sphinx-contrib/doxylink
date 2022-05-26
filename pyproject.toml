@@ -22,7 +22,7 @@ python-dateutil = "^2.8.2"
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
 testfixtures = "^6.18.5"
-mypy = "^0.950"
+mypy = "^0.960"
 
 [tool.pytest.ini_options]
 testpaths = ["sphinxcontrib", "tests"]
