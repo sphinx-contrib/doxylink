@@ -238,8 +238,8 @@ def parse_tag_file(doc: ET.ElementTree) -> Dict[str, Union[Entry, FunctionList]]
 
 def match_piecewise(candidates: Iterable[str], symbol: str, sep: str='::') -> set:
     """
-    Match the requested symbol reverse piecewise (split on ``::``) against the candidates.
-    This allows you to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``
+    Match the requested symbol against the candidates.
+    It is allowed to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``
 
     Args:
         candidates: set of possible matches for symbol
