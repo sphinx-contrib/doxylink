@@ -110,6 +110,8 @@ def test_parse_tag_file(examples_tag_file):
     ('my_namespace::MyClass::my_method', {'my_namespace::MyClass::my_method'}),
     ('MyClass::my_method', {'my_namespace::MyClass::my_method'}),
     ('ClassesGroup', {'ClassesGroup'}),
+    ('lassesGroup', set()),
+    ('yClass::my_method', set()),
 ])
 def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
     tag_file = ET.parse(examples_tag_file)
