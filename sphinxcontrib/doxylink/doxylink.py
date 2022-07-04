@@ -249,19 +249,10 @@ def match_piecewise(candidates: Iterable[str], symbol: str, sep: str='::') -> se
     Returns:
         set of matches
     """
+    min_length = len(symbol)
     piecewise_list = set()
     for item in candidates:
-        split_symbol = symbol.split(sep)
-        split_item = item.split(sep)
-
-        split_symbol.reverse()
-        split_item.reverse()
-
-        min_length = len(split_symbol)
-
-        split_item = split_item[:min_length]
-
-        if split_symbol == split_item:
+        if symbol == item[-min_length:] and item[-min_length-len(sep):-min_length] in [sep, '']:
             piecewise_list.add(item)
 
     return piecewise_list
