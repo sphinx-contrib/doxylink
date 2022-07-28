@@ -7,6 +7,10 @@ SPDX-License-Identifier: BSD
 
 ## [Unreleased]
 
+## [1.12.1] - 2022-07-28
+### Changed
+- Improve performance of class SymbolMap [PR #42]
+
 ## [1.12.0] - 2022-05-06
 ### Fixed
 - Handle the `operator()` method correctly
