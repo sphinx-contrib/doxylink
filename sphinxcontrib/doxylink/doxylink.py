@@ -214,6 +214,8 @@ def parse_tag_file(doc: ET.ElementTree) -> Dict[str, Union[Entry, FunctionList]]
             member_kind = member.get('kind')
             arglist_text = member.findtext('./arglist')  # If it has an <arglist> then we assume it's a function. Empty <arglist> returns '', not None. Things like typedefs and enums can have empty arglists
 
+            if member_kind == "friend": # ignore friend class definitions because it results in double class entries that will throw a RuntimeError (see below at the end of this function)
+                continue
             if arglist_text and member_kind not in {'variable', 'typedef', 'enumeration', "enumvalue"}:
                 function_list.append((member_symbol, arglist_text, member_kind, join(anchorfile, '#', member.findtext('anchor'))))
             else:

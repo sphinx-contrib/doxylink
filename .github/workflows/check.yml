@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: © 2022 Matt Williams <matt@milliams.com>
+# SPDX-License-Identifier: MIT
+
+name: Check
+
+on: [push, pull_request, workflow_call]
+
+permissions:
+  contents: read
+
+jobs:
+  code-checks:
+    name: Tests and lints
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install doxygen
+        run: |
+          sudo apt install -y doxygen
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        run: pip install poetry
+      - name: Setup package
+        run: poetry install
+      - name: Run mypy
+        run: poetry run mypy --install-types --non-interactive sphinxcontrib/doxylink
+      - name: Run pytest
+        run: poetry run pytest
+      - name: Test that package builds
+        run: poetry build
