@@ -110,7 +110,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Remove Python 2 compatibility
-- ### Fix
+
+### Fix
+
 - Add bug fix from Stein Heselmans to force the qualifier to be a single string
 
 ## [1.3] - 2012-09-13
