@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: © 2022 Matt Williams <matt@milliams.com>
+# SPDX-License-Identifier: MIT
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The new version, can be "patch", "minor", "major" (or a valid semver string)
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  run-tests:
+    uses: ./.github/workflows/check.yml
+    permissions:
+      contents: read
+  make-release:
+    name: "Release new ${{ inputs.version }} version"
+    needs: run-tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Set things up
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.*"
+      - name: Install Poetry
+        run: python -m pip install poetry
+
+      # Update and save the version
+      - name: update version
+        run: |
+          poetry version ${{ inputs.version }}
+          git add pyproject.toml
+      - name: Save the version
+        id: get_version
+        run: echo ::set-output name=version::"$(poetry version --short)"
+      - name: Update version in code
+        run: |
+          sed --in-place "s/__version__ = \".*\"/__version__ = \"${{ steps.get_version.outputs.version }}\"/" sphinxcontrib/doxylink/__init__.py
+          git add sphinxcontrib/doxylink/__init__.py
+
+      # Update and save the changelog
+      - name: Install chachacha
+        run: python -m pip install chachacha
+      - name: Update changelog version
+        run: |
+          head -n 5 CHANGELOG.md > header.tmp
+          chachacha release "${{ steps.get_version.outputs.version }}"
+          sed -i '/and this project adheres to/a \\n## [Unreleased]' CHANGELOG.md
+          cat header.tmp CHANGELOG.md > CHANGELOG.fixed.md
+          mv CHANGELOG.fixed.md CHANGELOG.md
+          rm header.tmp
+          git add CHANGELOG.md
+      - name: Extract changelog section
+        run: |
+          cargo install markdown-extract
+          changelog=$(markdown-extract --no-print-matched-heading "${{ steps.get_version.outputs.version }}" CHANGELOG.md)
+          echo "changelog<<EOF" >> $GITHUB_ENV
+          echo "$changelog" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+      - name: Commit and tag
+        run: |
+          git config --global user.name "Matt Williams"
+          git config --global user.email "milliams@users.noreply.github.com"
+          git commit -m "Release ${{ steps.get_version.outputs.version }}"
+          git tag "${{ steps.get_version.outputs.version }}"
+          git push --atomic --tags origin HEAD
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          release_name: ${{ steps.get_version.outputs.version }}
+          body: ${{ env.changelog }}
+          draft: false
+          # TODO set prerelease based on version passed in
+          prerelease: false
+
+      # Publish release to PyPI
+      - name: Set PyPI credentials
+        run: poetry config pypi-token.pypi ${PYPI_TOKEN}
+        env:
+          PYPI_TOKEN: ${{ secrets.pypi_token }}
+      - name: Publish
+        run: poetry publish --build
