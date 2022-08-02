@@ -6,6 +6,8 @@ SPDX-License-Identifier: BSD
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Ignore friend declarations as members to avoid crash [PR #45]
 
 ## [1.12.1] - 2022-07-28
 ### Changed
