@@ -293,12 +293,12 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
             # no cache present at all, initialise it
             report_info(app.env, 'No cache at all, rebuilding...')
             mapping = SymbolMap(_parse())
-            app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': modification_time}}
+            app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': modification_time, 'version': __version__}}
         elif not app.env.doxylink_cache.get(cache_name):
             # Main cache is there but the specific sub-cache for this tag file is not
             report_info(app.env, 'Sub cache is missing, rebuilding...')
             mapping = SymbolMap(_parse())
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time, 'version': __version__}
         elif app.env.doxylink_cache[cache_name]['mtime'] < modification_time:
             # tag file has been modified since sub-cache creation
             report_info(app.env, 'Sub-cache is out of date, rebuilding...')
@@ -308,7 +308,7 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
             # sub-cache doesn't have a version or the version doesn't match
             report_info(app.env, 'Sub-cache schema version doesn\'t match, rebuilding...')
             mapping = SymbolMap(_parse())
-            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
+            app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time, 'version': __version__}
         else:
             # The cache is up to date
             report_info(app.env, 'Sub-cache is up-to-date')
