@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.3] - 2023-10-24
+
 ### Fixed
 
 - Write the extension version into the cache which will now avoid having to re-parse the Doxygen tag file [PR #50]
@@ -114,9 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Remove Python 2 compatibility
-
-### Fix
-
+- ### Fix
 - Add bug fix from Stein Heselmans to force the qualifier to be a single string
 
 ## [1.3] - 2012-09-13
