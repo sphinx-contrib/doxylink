@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Write the extension version into the cache which will now avoid having to re-parse the Doxygen tag file [PR #50]
+
 ## [1.12.2] - 2022-08-02
 
 ### Fixed
