@@ -130,10 +130,22 @@ Configuration values
 
 .. confval:: doxylink
 
-    The environment is set up with a dictionary mapping the interpreted text role to a tuple of tag file and prefix.
-    The keys of this dictionary must be lower-case. The prefix can be an absolute path or a path relative to `Sphinx'
-    output directory`_. An optional third element with the name of a Doxygen pdf file may be added. This will be used
-    when Sphinx uses the LaTeX builder. Otherwise, the second element of the tuple will be used to link to.
+    The environment is set up with a dictionary that maps the interpreted text role, which must be lower-case,
+    to a tuple with at most three elements, of which the third is optional:
+
+    - The path to the Doxygen tag file, which can be:
+
+      - absolute,
+      - relative to the location where `sphinx-build` is executed,
+      - a URL so that the file will be downloaded first.
+
+    - The path to the root of HTML documentation, which can be:
+
+      - absolute
+      - relative to `Sphinx' output directory`_.
+
+    - The filename of a Doxygen pdf file, to be used when Sphinx uses the LaTeX builder.
+      Otherwise, the second element of the tuple will be used to link to.
 
     .. code-block:: python
 
