@@ -228,11 +228,13 @@ def parse_tag_file(doc: ET.ElementTree) -> Dict[str, Union[Entry, FunctionList]]
         except ParseException as e:
             print(f'Skipping {kind} {member_symbol}{arglist}. Error reported from parser was: {e}')
         else:
-            if member_symbol not in mapping:
+            if member_symbol not in mapping or isinstance(mapping[member_symbol], Entry):
                 mapping[member_symbol] = FunctionList()
             member_mapping = mapping[member_symbol]
+
             if not isinstance(member_mapping, FunctionList):
                 raise RuntimeError(f"Cannot add override to non-function '{member_symbol}'")
+
             member_mapping.add_overload(normalised_arglist, anchor_link)
 
     return mapping
