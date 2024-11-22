@@ -57,7 +57,8 @@ argument_type = Opt(qualifier, default='')("qualifier") + \
                 input_type('input_type').setParseAction(' '.join) + \
                 Opt(pointer_or_reference, default='')("pointer_or_reference1") + \
                 Opt('const')('const_pointer_or_reference') + \
-                Opt(pointer_or_reference, default='')("pointer_or_reference2")
+                Opt(pointer_or_reference, default='')("pointer_or_reference2") +\
+                Opt('...')("parameter_pack")
 
 # Argument + variable name + default
 argument = Group(argument_type('argument_type') + Opt(input_name) + Opt(default_value))
@@ -136,6 +137,9 @@ def normalise(symbol: str) -> Tuple[str, str]:
             const_pointer_ref_list.append(arg.pointer_or_reference2)
             # And combine them into a single normalised string and add them to the argument list
             argument_string_list.extend(const_pointer_ref_list)
+
+            # Add template parameter pack
+            argument_string_list.append(arg.parameter_pack)
 
             # Finally we join our argument string and add it to our list
             normalised_arg_list.append(''.join(argument_string_list))
