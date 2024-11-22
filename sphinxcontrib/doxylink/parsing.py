@@ -94,11 +94,13 @@ def normalise(symbol: str) -> Tuple[str, str]:
 
     # This is a very common signature so we'll make a special case for it. It requires no parsing anyway
     if arglist_input_string.startswith('()'):
-        arglist_input_string_no_spaces = arglist_input_string.replace(' override', '').replace(' final', '').replace(' ', '')
-        if arglist_input_string_no_spaces in ('()', '()=0', '()=default'):
-            return function_name, '()'
-        if arglist_input_string_no_spaces in ('()const', '()const=0'):
-            return function_name, '() const'
+        arglist_input_string_no_spaces = (arglist_input_string.replace(' override', '').replace(' final', '')
+                                          .replace(' ', '').replace('=0', '').replace('=default', ''))
+        exception_qualifier = max(arglist_input_string_no_spaces.find('noexcept'),
+                                  arglist_input_string_no_spaces.find('throw'))
+        arglist_input_string_no_spaces = arglist_input_string_no_spaces[
+                                         :exception_qualifier] if exception_qualifier >= 0 else arglist_input_string_no_spaces
+        return function_name, arglist_input_string_no_spaces.replace('const', ' const')
 
     # By now we're left with something like "(blah, blah)", "(blah, blah) const" or "(blah, blah) const =0"
     try:
