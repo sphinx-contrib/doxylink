@@ -92,13 +92,19 @@ def test_parse_tag_file(examples_tag_file):
     tag_file = ET.parse(examples_tag_file)
     mapping = doxylink.parse_tag_file(tag_file)
 
-    assert 'my_lib.h' in mapping
-    assert 'my_lib.h::my_func' in mapping
-    assert 'my_namespace' in mapping
-    assert 'my_namespace::MyClass' in mapping
-    assert 'my_lib.h::MY_MACRO' in mapping
-    assert 'my_namespace::MyClass::my_method' in mapping
-    assert 'ClassesGroup' in mapping
+    def has_entry(name):
+        """
+        Checks if we have at least one entry with the specified name
+        """
+        return any(filter(lambda entry: entry.name == name, mapping))
+
+    assert has_entry('my_lib.h')
+    assert has_entry('my_lib.h::my_func')
+    assert has_entry('my_namespace')
+    assert has_entry('my_namespace::MyClass')
+    assert has_entry('my_lib.h::MY_MACRO')
+    assert has_entry('my_namespace::MyClass::my_method')
+    assert has_entry('ClassesGroup')
 
 
 @pytest.mark.parametrize('symbol, expected_matches', [
@@ -115,11 +121,14 @@ def test_parse_tag_file(examples_tag_file):
 ])
 def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
     tag_file = ET.parse(examples_tag_file)
-    mapping = doxylink.parse_tag_file(tag_file)
+    mapping = doxylink.SymbolMap(tag_file)
 
-    matches = doxylink.match_piecewise(mapping.keys(), symbol)
-    assert expected_matches == matches
-    assert matches.issubset(mapping.keys())
+    matches = mapping._find_entries(symbol, None, None)
+    matched_names = {entry.name for entry in matches}
+
+    assert expected_matches == matched_names
+    assert set(matches).issubset(set(mapping._mapping))
+
 
 @pytest.mark.parametrize('str_to_validate, expected', [
     ('http://example.com', True),
