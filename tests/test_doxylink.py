@@ -127,7 +127,7 @@ def test_find_url_piecewise(examples_tag_file, symbol, expected_matches):
     matched_names = {entry.name for entry in matches}
 
     assert expected_matches == matched_names
-    assert set(matches).issubset(set(mapping._mapping))
+    assert set(matches).issubset(set(mapping._entries))
 
 
 @pytest.mark.parametrize('str_to_validate, expected', [

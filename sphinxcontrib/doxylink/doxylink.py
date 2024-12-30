@@ -55,11 +55,13 @@ class Entry(namedtuple('_Entry', ['name', 'kind', 'file', 'arglist'])):
         return self.arglist == arglist
 
 
+    @property
     def is_class(self) -> bool:
         '''Returns true if this is a class entry (``kind`` is ``"class"``)'''
         return self.kind == 'class'
 
 
+    @property
     def is_template(self) -> bool:
         '''Returns true if this is a template entry'''
         return '<' in self.name
@@ -122,21 +124,21 @@ def is_url(str_to_validate: str) -> bool:
 class SymbolMap:
     """A SymbolMap maps symbols to Entries."""
     def __init__(self, xml_doc: ET.ElementTree) -> None:
-        mapping = parse_tag_file(xml_doc)
+        entries = parse_tag_file(xml_doc)
 
-        # Sort the mapping for use with bisect
-        self._mapping = sorted(mapping, key=self._mapping_key)
+        # Sort the entry list for use with bisect
+        self._entries = sorted(entries, key=self._sort_key)
 
 
     @staticmethod
-    def _mapping_key(entry: Entry) -> str:
+    def _sort_key(entry: Entry) -> str:
         '''
-        Sorting key for the internal mapping. We sort by the reversed entry name so we
+        Sorting key for the internal entry list. We sort by the reversed entry name so we
         can bisect names based on the last element. This allows us to match "foo::bar"
         when searching for "bar".
 
         Args:
-            entry (Entry): the entry to generated a key for
+            entry (Entry): the entry to generate a key for
 
         Returns:
             str: the reversed entry name
@@ -162,8 +164,8 @@ class SymbolMap:
 
         # Thanks to the sorting, all we need to do is iterate from the first to
         # the last matching entry.
-        start = bisect.bisect_left(self._mapping, name[::-1], key=self._mapping_key)
-        for candidate in self._mapping[start:]:
+        start = bisect.bisect_left(self._entries, name[::-1], key=self._sort_key)
+        for candidate in self._entries[start:]:
             if not candidate.name.endswith(name):
                 # Reached the end of entries that end in 'name'
                 break
@@ -198,7 +200,7 @@ class SymbolMap:
         # If there is more than one candidate then there is an ambiguity
         # Often this is due to the symbol matching the name of the constructor as well as the class name itself
         # We will prefer the class
-        classes = [c for c in candidates if c.is_class()]
+        classes = [c for c in candidates if c.is_class]
 
         # If there is only one by here we return it.
         if len(classes) == 1:
@@ -206,13 +208,10 @@ class SymbolMap:
 
         # Now, to disambiguate between ``PolyVox::Array< 1, ElementType >::operator[]`` and ``PolyVox::Array::operator[]`` matching ``operator[]``,
         # we will ignore templated (as in C++ templates) tag names by removing names containing ``<``
-        no_templates = [c for c in candidates if not c.is_template()]
+        no_templates = [c for c in candidates if not c.is_template]
 
         if len(no_templates) == 1:
             return no_templates[0]
-
-        def pretty_entry(entry):
-            return entry.kind + ' ' + entry.name + (entry.arglist or '')
 
         # If not found by now, return the shortest match, assuming that's the most specific
         if no_templates:
@@ -254,7 +253,7 @@ def parse_tag_file(doc: ET.ElementTree) -> list[Entry]:
     :return: a list of entries mapping fully qualified symbols to files
     """
 
-    mapping: list[Entry] = []
+    entries: list[Entry] = []
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
         if compound_kind not in {'namespace', 'class', 'struct', 'file', 'define', 'group', 'page'}:
@@ -275,7 +274,7 @@ def parse_tag_file(doc: ET.ElementTree) -> list[Entry]:
             compound_filename = compound_filename + '.html'
 
         # If it's a compound we can simply add it
-        mapping.append(Entry(compound_name, kind=compound_kind, file=compound_filename, arglist=None))
+        entries.append(Entry(compound_name, kind=compound_kind, file=compound_filename, arglist=None))
 
         for member in compound.findall('member'):
             # If the member doesn't have an <anchorfile> element, use the parent compounds <filename> instead
@@ -290,19 +289,19 @@ def parse_tag_file(doc: ET.ElementTree) -> list[Entry]:
 
             member_file = join(anchorfile, '#', member.findtext('anchor'))
 
-            if arglist and member_kind not in {'variable', 'typedef', 'enumeration', "enumvalue"}:
+            if arglist and member_kind not in {'variable', 'typedef', 'enumeration', 'enumvalue'}:
                 try:
                     # Parse arguments to do overload resolution later
                     normalised_arglist = normalise(member_symbol + arglist)[1]
-                    mapping.append(
+                    entries.append(
                         Entry(name=member_symbol, kind=member_kind, file=member_file, arglist=normalised_arglist))
                 except ParseException as e:
                     print(f'Skipping {member_kind} {member_symbol}{arglist}. Error reported from parser was: {e}')
             else:
                 # Put the simple things directly into the list
-                mapping.append(Entry(name=member_symbol, kind=member_kind, file=member_file, arglist=None))
+                entries.append(Entry(name=member_symbol, kind=member_kind, file=member_file, arglist=None))
 
-    return mapping
+    return entries
 
 
 def join(*args):
