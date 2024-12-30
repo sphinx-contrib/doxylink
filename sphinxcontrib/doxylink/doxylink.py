@@ -7,7 +7,7 @@ import time
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
-from typing import Optional
+from typing import List, Optional, Union
 
 from dateutil.parser import parse as parsedate
 from docutils import nodes, utils
@@ -53,6 +53,17 @@ class Entry(namedtuple('_Entry', ['name', 'kind', 'file', 'arglist'])):
             return True
 
         return self.arglist == arglist
+
+
+    def __lt__(self, other: Union["Entry", str]) -> bool:  # type:ignore
+        '''
+        Compares entries for sorting by reverse name. This allows `SymbolMap` to
+        match "foo::bar" when searching for "bar".
+        '''
+
+        if isinstance(other, Entry):
+            return self.name[::-1] < other.name[::-1]
+        return self.name[::-1] < other
 
 
     @property
@@ -127,27 +138,10 @@ class SymbolMap:
         entries = parse_tag_file(xml_doc)
 
         # Sort the entry list for use with bisect
-        self._entries = sorted(entries, key=self._sort_key)
+        self._entries = sorted(entries)
 
 
-    @staticmethod
-    def _sort_key(entry: Entry) -> str:
-        '''
-        Sorting key for the internal entry list. We sort by the reversed entry name so we
-        can bisect names based on the last element. This allows us to match "foo::bar"
-        when searching for "bar".
-
-        Args:
-            entry (Entry): the entry to generate a key for
-
-        Returns:
-            str: the reversed entry name
-        '''
-
-        return entry.name[::-1]
-
-
-    def _find_entries(self, name: str, kind: Optional[str], arglist: Optional[str]) -> list[Entry]:
+    def _find_entries(self, name: str, kind: Optional[str], arglist: Optional[str]) -> List[Entry]:
         '''
         Finds all potentially matching entries in the symbol list.
 
@@ -164,7 +158,7 @@ class SymbolMap:
 
         # Thanks to the sorting, all we need to do is iterate from the first to
         # the last matching entry.
-        start = bisect.bisect_left(self._entries, name[::-1], key=self._sort_key)
+        start = bisect.bisect_left(self._entries, name[::-1])  # type:ignore
         for candidate in self._entries[start:]:
             if not candidate.name.endswith(name):
                 # Reached the end of entries that end in 'name'
@@ -177,7 +171,7 @@ class SymbolMap:
         return matches
 
 
-    def _disambiguate(self, name: str, candidates: list[Entry]) -> Entry:
+    def _disambiguate(self, name: str, candidates: List[Entry]) -> Entry:
         '''
         Returns the best-fitting candidate for the given symbol name. All
         candidates are expected to be valid.
@@ -231,7 +225,7 @@ class SymbolMap:
         return self._disambiguate(symbol, candidates)
 
 
-def parse_tag_file(doc: ET.ElementTree) -> list[Entry]:
+def parse_tag_file(doc: ET.ElementTree) -> List[Entry]:
     """
     Takes in an XML tree from a Doxygen tag file and returns a list that looks something like:
 
@@ -253,7 +247,7 @@ def parse_tag_file(doc: ET.ElementTree) -> list[Entry]:
     :return: a list of entries mapping fully qualified symbols to files
     """
 
-    entries: list[Entry] = []
+    entries: List[Entry] = []
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
         if compound_kind not in {'namespace', 'class', 'struct', 'file', 'define', 'group', 'page'}:
