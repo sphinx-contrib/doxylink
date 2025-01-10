@@ -1,4 +1,5 @@
 #include <string>
+#include <QObject>
 
 /**
  * Example documented function
@@ -18,8 +19,10 @@ int my_func(int b, std::string a);
 /// @{
 namespace my_namespace
 {
-    class MyClass
+    class MyClass: public QObject
     {
+        Q_OBJECT
+        Q_PROPERTY(double my_method READ my_method);
        public:
         MyClass();
 

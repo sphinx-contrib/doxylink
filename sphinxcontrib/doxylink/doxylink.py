@@ -1,3 +1,4 @@
+import bisect
 import os
 import re
 import requests
@@ -6,7 +7,7 @@ import time
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
-from typing import Dict, Iterable, MutableMapping, Set, Union
+from typing import List, Optional, Union
 
 from dateutil.parser import parse as parsedate
 from docutils import nodes, utils
@@ -20,7 +21,61 @@ if sphinx_version >= '1.6.0':
 from . import __version__
 from .parsing import normalise, ParseException
 
-Entry = namedtuple('Entry', ['kind', 'file'])
+
+class Entry(namedtuple('_Entry', ['name', 'kind', 'file', 'arglist'])):
+    '''Represents a documentation entry produced by Doxygen.'''
+
+    def matches(self, name: str, kind: Optional[str], arglist: Optional[str]) -> bool:
+        '''
+        Checks whether this entry has the specified name, kind, and argument list.
+
+        Args:
+            name (str): symbol name
+            kind (Optional[str]): restrict to symbols of this kind
+            arglist (Optional[str]): normalized argument list for overload resolution
+        '''
+
+        # Are we of the correct kind?
+        if kind and self.kind != kind:
+            return False
+
+        # Ensure the name matches
+        if not self.name.endswith(name):
+            return False
+
+        # "do_foo" doesn't match "foo"
+        prefix = self.name[:-len(name)]
+        if prefix and (prefix[-1].isidentifier() or prefix[-1].isnumeric()):
+            return False
+
+        if not arglist:
+            # If no argument list is provided, anything matches
+            return True
+
+        return self.arglist == arglist
+
+
+    def __lt__(self, other: Union["Entry", str]) -> bool:  # type:ignore
+        '''
+        Compares entries for sorting by reverse name. This allows `SymbolMap` to
+        match "foo::bar" when searching for "bar".
+        '''
+
+        if isinstance(other, Entry):
+            return self.name[::-1] < other.name[::-1]
+        return self.name[::-1] < other
+
+
+    @property
+    def is_class(self) -> bool:
+        '''Returns true if this is a class entry (``kind`` is ``"class"``)'''
+        return self.kind == 'class'
+
+
+    @property
+    def is_template(self) -> bool:
+        '''Returns true if this is a template entry'''
+        return '<' in self.name
 
 
 def report_info(env, msg, docname=None, lineno=None):
@@ -77,110 +132,122 @@ def is_url(str_to_validate: str) -> bool:
     return bool(re.match(regex, str_to_validate))
 
 
-class FunctionList:
-    """A FunctionList maps argument lists to specific entries"""
-    def __init__(self):
-        self.kind = 'function_list'
-        self._arglist: MutableMapping[str, str] = {}
-
-    def __getitem__(self, arglist: str) -> Entry:
-        # If the user has requested a specific function through specifying an arglist then get the right anchor
-        if arglist:
-            try:
-                filename = self._arglist[arglist]
-            except KeyError:
-                # TODO Offer fuzzy suggestion
-                raise LookupError('Argument list match not found')
-        else:
-            # Otherwise just return the first entry (if they don't care they get whatever comes first)
-            filename = list(self._arglist.values())[0]
-
-        return Entry(kind='function', file=filename)
-
-    def add_overload(self, arglist: str, file: str) -> None:
-        self._arglist[arglist] = file
-
-    def __repr__(self):
-        return f"FunctionList({self._arglist})"
-
-
 class SymbolMap:
-    """A SymbolMap maps symbols to Entries or FunctionLists"""
+    """A SymbolMap maps symbols to Entries."""
     def __init__(self, xml_doc: ET.ElementTree) -> None:
-        self._mapping = parse_tag_file(xml_doc)
+        entries = parse_tag_file(xml_doc)
 
-    def _get_symbol_match(self, symbol: str) -> str:
-        if self._mapping.get(symbol):
-            return symbol
+        # Sort the entry list for use with bisect
+        self._entries = sorted(entries)
 
-        piecewise_list = match_piecewise(self._mapping.keys(), symbol)
 
-        # If there is only one match, return it.
-        if len(piecewise_list) == 1:
-            return list(piecewise_list)[0]
+    def _find_entries(self, name: str, kind: Optional[str], arglist: Optional[str]) -> List[Entry]:
+        '''
+        Finds all potentially matching entries in the symbol list.
 
-        # If there is more than one item in piecewise_list then there is an ambiguity
+        Args:
+            name (str): the name symbol to search for
+            kind (Optional[str]): the kind of symbols to search for
+            arglist (str): normalised function argument list
+
+        Returns:
+            list[Entry]: all entries whose name ends with 'name'
+        '''
+
+        matches = []
+
+        # Thanks to the sorting, all we need to do is iterate from the first to
+        # the last matching entry.
+        start = bisect.bisect_left(self._entries, name[::-1])  # type:ignore
+        for candidate in self._entries[start:]:
+            if not candidate.name.endswith(name):
+                # Reached the end of entries that end in 'name'
+                break
+
+            if candidate.matches(name, kind, arglist):
+                # Found one
+                matches.append(candidate)
+
+        return matches
+
+
+    def _disambiguate(self, name: str, candidates: List[Entry]) -> Entry:
+        '''
+        Returns the best-fitting candidate for the given symbol name. All
+        candidates are expected to be valid.
+
+        Args:
+            name (str): symbol name
+            candidates (list[Entry]): list of candidates to choose from
+
+        Returns:
+            Entry: the best candidate
+        '''
+
+        if not candidates:
+            raise LookupError(f'No documentation entry matching "{name}"')
+
+        # An exact match would appear at the beginning of the list.
+        if len(candidates) == 1 or candidates[0].name == name:
+            return candidates[0]
+
+        # If there is more than one candidate then there is an ambiguity
         # Often this is due to the symbol matching the name of the constructor as well as the class name itself
         # We will prefer the class
-        classes_list = {s for s in piecewise_list if self._mapping[s].kind == 'class'}
+        classes = [c for c in candidates if c.is_class]
 
         # If there is only one by here we return it.
-        if len(classes_list) == 1:
-            return list(classes_list)[0]
+        if len(classes) == 1:
+            return classes[0]
 
         # Now, to disambiguate between ``PolyVox::Array< 1, ElementType >::operator[]`` and ``PolyVox::Array::operator[]`` matching ``operator[]``,
         # we will ignore templated (as in C++ templates) tag names by removing names containing ``<``
-        no_templates_list = {s for s in piecewise_list if '<' not in s}
+        no_templates = [c for c in candidates if not c.is_template]
 
-        if len(no_templates_list) == 1:
-            return list(no_templates_list)[0]
+        if len(no_templates) == 1:
+            return no_templates[0]
 
         # If not found by now, return the shortest match, assuming that's the most specific
-        if no_templates_list:
+        if no_templates:
             # TODO return a warning here?
-            return min(no_templates_list, key=len)
+            return min(no_templates, key=lambda entry: len(entry.name))
 
         # TODO Offer fuzzy suggestion
         raise LookupError('Could not find a match')
 
+
     def __getitem__(self, item: str) -> Entry:
         symbol, normalised_arglist = normalise(item)
 
-        matched_symbol = self._get_symbol_match(symbol)
-        entry = self._mapping[matched_symbol]
-
-        if isinstance(entry, FunctionList):
-            entry = entry[normalised_arglist]
-
-        return entry
+        # Restrict to functions when given an argument list
+        kind = 'function' if normalised_arglist else None
+        candidates = self._find_entries(symbol, kind, normalised_arglist)
+        return self._disambiguate(symbol, candidates)
 
 
-def parse_tag_file(doc: ET.ElementTree) -> Dict[str, Union[Entry, FunctionList]]:
+def parse_tag_file(doc: ET.ElementTree) -> List[Entry]:
     """
-    Takes in an XML tree from a Doxygen tag file and returns a dictionary that looks something like:
+    Takes in an XML tree from a Doxygen tag file and returns a list that looks something like:
 
     .. code-block:: python
 
-        {'PolyVox': Entry(...),
-         'PolyVox::Array': Entry(...),
-         'PolyVox::Array1DDouble': Entry(...),
-         'PolyVox::Array1DFloat': Entry(...),
-         'PolyVox::Array1DInt16': Entry(...),
-         'QScriptContext::throwError': FunctionList(...),
-         'QScriptContext::toString': FunctionList(...)
-         }
-
-    Note the different form for functions. This is required to allow for 'overloading by argument type'.
+        [Entry('PolyVox', ...),
+         Entry('PolyVox::Array', ...),
+         Entry('PolyVox::Array1DDouble'),
+         Entry('PolyVox::Array1DFloat'),
+         Entry('PolyVox::Array1DInt16'),
+         Entry('QScriptContext::throwError'),
+         Entry('QScriptContext::toString'),
+        ]
 
     :Parameters:
         doc : xml.etree.ElementTree
             The XML DOM object
 
-    :return: a dictionary mapping fully qualified symbols to files
+    :return: a list of entries mapping fully qualified symbols to files
     """
 
-    mapping: Dict[str, Union[Entry, FunctionList]] = {}
-    function_list = []  # This is a list of function to be parsed and inserted into mapping at the end of the function.
+    entries: List[Entry] = []
     for compound in doc.findall('./compound'):
         compound_kind = compound.get('kind')
         if compound_kind not in {'namespace', 'class', 'struct', 'file', 'define', 'group', 'page'}:
@@ -201,7 +268,7 @@ def parse_tag_file(doc: ET.ElementTree) -> Dict[str, Union[Entry, FunctionList]]
             compound_filename = compound_filename + '.html'
 
         # If it's a compound we can simply add it
-        mapping[compound_name] = Entry(kind=compound_kind, file=compound_filename)
+        entries.append(Entry(compound_name, kind=compound_kind, file=compound_filename, arglist=None))
 
         for member in compound.findall('member'):
             # If the member doesn't have an <anchorfile> element, use the parent compounds <filename> instead
@@ -212,52 +279,23 @@ def parse_tag_file(doc: ET.ElementTree) -> Dict[str, Union[Entry, FunctionList]]
                 raise KeyError(f"Member of {compound_name} does not have a name")
             member_symbol = compound_name + '::' + member_name
             member_kind = member.get('kind')
-            arglist_text = member.findtext('./arglist')  # If it has an <arglist> then we assume it's a function. Empty <arglist> returns '', not None. Things like typedefs and enums can have empty arglists
+            arglist = member.findtext('./arglist')  # If it has an <arglist> then we assume it's a function. Empty <arglist> returns '', not None. Things like typedefs and enums can have empty arglists
 
-            if member_kind == "friend": # ignore friend class definitions because it results in double class entries that will throw a RuntimeError (see below at the end of this function)
-                continue
-            if arglist_text and member_kind not in {'variable', 'typedef', 'enumeration', "enumvalue"}:
-                function_list.append((member_symbol, arglist_text, member_kind, join(anchorfile, '#', member.findtext('anchor'))))
+            member_file = join(anchorfile, '#', member.findtext('anchor'))
+
+            if arglist and member_kind not in {'variable', 'typedef', 'enumeration', 'enumvalue'}:
+                try:
+                    # Parse arguments to do overload resolution later
+                    normalised_arglist = normalise(member_symbol + arglist)[1]
+                    entries.append(
+                        Entry(name=member_symbol, kind=member_kind, file=member_file, arglist=normalised_arglist))
+                except ParseException as e:
+                    print(f'Skipping {member_kind} {member_symbol}{arglist}. Error reported from parser was: {e}')
             else:
-                # Put the simple things directly into the mapping
-                mapping[member_symbol] = Entry(kind=member.get('kind'), file=join(anchorfile, '#', member.findtext('anchor')))
+                # Put the simple things directly into the list
+                entries.append(Entry(name=member_symbol, kind=member_kind, file=member_file, arglist=None))
 
-    for member_symbol, arglist, kind, anchor_link in function_list:
-        try:
-            normalised_arglist = normalise(member_symbol + arglist)[1]
-        except ParseException as e:
-            print(f'Skipping {kind} {member_symbol}{arglist}. Error reported from parser was: {e}')
-        else:
-            if member_symbol not in mapping:
-                mapping[member_symbol] = FunctionList()
-            member_mapping = mapping[member_symbol]
-            if not isinstance(member_mapping, FunctionList):
-                raise RuntimeError(f"Cannot add override to non-function '{member_symbol}'")
-            member_mapping.add_overload(normalised_arglist, anchor_link)
-
-    return mapping
-
-
-def match_piecewise(candidates: Iterable[str], symbol: str, sep: str='::') -> set:
-    """
-    Match the requested symbol against the candidates.
-    It is allowed to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``
-
-    Args:
-        candidates: set of possible matches for symbol
-        symbol: the symbol to match against
-        sep: the separator between identifier elements
-
-    Returns:
-        set of matches
-    """
-    min_length = len(symbol)
-    piecewise_list = set()
-    for item in candidates:
-        if symbol == item[-min_length:] and item[-min_length-len(sep):-min_length] in [sep, '']:
-            piecewise_list.add(item)
-
-    return piecewise_list
+    return entries
 
 
 def join(*args):
