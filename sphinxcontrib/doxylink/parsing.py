@@ -1,11 +1,11 @@
 from typing import Tuple
 
-from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt,\
-    SkipTo, ParseException, Group, Combine, delimitedList, quotedString,\
-    nestedExpr, ParseResults, oneOf, ungroup, Keyword
+from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt, \
+    SkipTo, ParseException, Group, Combine, delimitedList, quotedString, \
+    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore
 
 # define punctuation - reuse of expressions helps packratting work better
-LPAR, RPAR, LBRACK, RBRACK, COMMA, EQ = map(Literal, "()[],=")
+LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=")
 
 # Qualifier to go in front of type in the argument list (unsigned const int foo)
 qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
@@ -34,6 +34,7 @@ angle_bracket_pair = nestedExpr(opener='<', closer='>').setParseAction(turn_pars
 # TODO Fix for nesting brackets
 parentheses_pair = LPAR + SkipTo(RPAR) + RPAR
 square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
+curly_bracket_pair = LCBRACK + SkipTo(RCBRACK) + RCBRACK
 
 # TODO I guess this should be a delimited list (by '::') of name and angle brackets
 nonfundamental_input_type = Combine(Word(alphanums + ':_') + Opt(angle_bracket_pair + Opt(Word(alphanums + ':_'))))
@@ -47,17 +48,19 @@ number = Word('-.' + nums)
 input_name = OneOrMore(Word(alphanums + '_') | angle_bracket_pair | parentheses_pair | square_bracket_pair)
 
 # Grab the '&', '*' or '**' type bit in (const QString & foo, int ** bar)
-pointer_or_reference = Combine(oneOf('* &') + Opt('...'))
+pointer = Literal('*') + Opt(Literal('const') | Literal('volatile'))
+reference = Literal('&')
+pointer_or_reference = pointer | reference
 
 # The '=QString()' or '=false' bit in (int foo = 4, bool bar = false)
-default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | Word('|&^'))
+default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | curly_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
 argument_type = Opt(qualifier, default='')("qualifier") + \
                 input_type('input_type').setParseAction(' '.join) + \
                 Opt(pointer_or_reference, default='')("pointer_or_reference1") + \
                 Opt('const')('const_pointer_or_reference') + \
-                Opt(pointer_or_reference, default='')("pointer_or_reference2") +\
+                Opt(pointer_or_reference, default='')("pointer_or_reference2") + \
                 Opt('...')("parameter_pack")
 
 # Argument + variable name + default
@@ -129,19 +132,14 @@ def normalise(symbol: str) -> Tuple[str, str]:
         for arg in result.arg_list:
             # Here is where we build up our normalised form of the argument
             argument_string_list = ['']
-            if arg.qualifier:
-                argument_string_list.append(''.join((arg.qualifier, ' ')))
+            if arg.qualifier1:
+                argument_string_list.append(''.join((arg.qualifier1, ' ')))
+            if arg.qualifier2:
+                argument_string_list.append(''.join((arg.qualifier2, ' ')))
             argument_string_list.append(arg.input_type)
 
             # Functions can have a funny combination of *, & and const between the type and the name so build up a list of those here:
-            const_pointer_ref_list = []
-            const_pointer_ref_list.append(arg.pointer_or_reference1)
-            if arg.const_pointer_or_reference:
-                const_pointer_ref_list.append(''.join((' ', arg.const_pointer_or_reference, ' ')))
-            # same here
-            const_pointer_ref_list.append(arg.pointer_or_reference2)
-            # And combine them into a single normalised string and add them to the argument list
-            argument_string_list.extend(const_pointer_ref_list)
+            argument_string_list.extend(''.join(arg.pointer_or_references))
 
             # Add template parameter pack
             argument_string_list.append(arg.parameter_pack)
