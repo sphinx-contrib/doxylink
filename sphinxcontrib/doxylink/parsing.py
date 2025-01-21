@@ -56,11 +56,10 @@ pointer_or_reference = pointer | reference
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | curly_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
-argument_type = Opt(qualifier, default='')("qualifier") + \
-                input_type('input_type').setParseAction(' '.join) + \
-                Opt(pointer_or_reference, default='')("pointer_or_reference1") + \
-                Opt('const')('const_pointer_or_reference') + \
-                Opt(pointer_or_reference, default='')("pointer_or_reference2") + \
+argument_type = Opt(qualifier, default='')("qualifier1") + \
+                input_type("input_type").setParseAction(' '.join) + \
+                Opt(qualifier, default='')("qualifier2") + \
+                Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \
                 Opt('...')("parameter_pack")
 
 # Argument + variable name + default
