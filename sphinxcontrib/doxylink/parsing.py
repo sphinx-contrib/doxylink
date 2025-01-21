@@ -94,6 +94,7 @@ def normalise(symbol: str) -> Tuple[str, str]:
 
     # This is a very common signature so we'll make a special case for it. It requires no parsing anyway
     if arglist_input_string.startswith('()'):
+        arglist_input_string_no_spaces = arglist_input_string
         substrings_to_remove = (' override', ' final', ' ', '=0', '=default')
         for part in substrings_to_remove:
             arglist_input_string_no_spaces = arglist_input_string_no_spaces.replace(part, '')
