@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Support multiple documentation items with the same name [PR #63]
+- Parse exception and ref qualifier [PR #60]
+- Handle arbitrary number of `*` and `&` [PR #61]
+- Handle parameter packs `T...` [PR #62]
+
+### Changed
+
+- Clarify and complete documentation about 'Configuration values' [PR #58]
+
 ## [1.12.3] - 2023-10-24
 
 ### Fixed
