@@ -56,6 +56,7 @@ arglists = [
 ]
 
 varargs = [
+    ('(Args&& ... args)', ('', '(Args&&...)')),
     ('(int nb=0,...)', ('', '(int, ...)')),
     ('printf( const char* format, ... )', ('printf', '(const char*, ...)')),
     ('fprintf( std::FILE* stream, const char* format, ... )', ('fprintf', '(std::FILE*, const char*, ...)')),

@@ -57,7 +57,10 @@ default_value = Literal('=') + OneOrMore(number | quotedString | input_type | pa
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
 argument_type = Opt(qualifier, default='')("qualifier1") + \
-                input_type("input_type").setParseAction(' '.join) + Opt(qualifier, default='')("qualifier2") + Group(ZeroOrMore(pointer_or_reference))("pointer_or_references")
+                input_type("input_type").setParseAction(' '.join) + \
+                Opt(qualifier, default='')("qualifier2") + \
+                Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \
+                Opt('...')("parameter_pack")
 
 # Argument + variable name + default
 argument = Group(argument_type('argument_type') + Opt(input_name) + Opt(default_value))
@@ -136,6 +139,9 @@ def normalise(symbol: str) -> Tuple[str, str]:
 
             # Functions can have a funny combination of *, & and const between the type and the name so build up a list of those here:
             argument_string_list.extend(''.join(arg.pointer_or_references))
+
+            # Add template parameter pack
+            argument_string_list.append(arg.parameter_pack)
 
             # Finally we join our argument string and add it to our list
             normalised_arg_list.append(''.join(argument_string_list))
