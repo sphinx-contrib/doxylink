@@ -134,8 +134,8 @@ def is_url(str_to_validate: str) -> bool:
 
 class SymbolMap:
     """A SymbolMap maps symbols to Entries."""
-    def __init__(self, xml_doc: ET.ElementTree) -> None:
-        entries = parse_tag_file(xml_doc)
+    def __init__(self, xml_doc: ET.ElementTree, parse_exception_ignore_pattern: Union['re.Pattern', None]) -> None:
+        entries = parse_tag_file(xml_doc, parse_exception_ignore_pattern)
 
         # Sort the entry list for use with bisect
         self._entries = sorted(entries)
@@ -225,7 +225,7 @@ class SymbolMap:
         return self._disambiguate(symbol, candidates)
 
 
-def parse_tag_file(doc: ET.ElementTree) -> List[Entry]:
+def parse_tag_file(doc: ET.ElementTree, parse_exception_ignore_pattern: Union['re.Pattern', None]) -> List[Entry]:
     """
     Takes in an XML tree from a Doxygen tag file and returns a list that looks something like:
 
@@ -290,7 +290,14 @@ def parse_tag_file(doc: ET.ElementTree) -> List[Entry]:
                     entries.append(
                         Entry(name=member_symbol, kind=member_kind, file=member_file, arglist=normalised_arglist))
                 except ParseException as e:
-                    print(f'Skipping {member_kind} {member_symbol}{arglist}. Error reported from parser was: {e}')
+                    # Check if the parse exception message matches the ignore regular expression, if it does do not print the message
+                    message = f'Skipping {member_kind} {member_symbol}{arglist}. Error reported from parser was: {e}'
+                    matched = parse_exception_ignore_pattern.match(message) if parse_exception_ignore_pattern else False
+
+                    if not matched:
+                        print(message)
+
+                    continue
             else:
                 # Put the simple things directly into the list
                 entries.append(Entry(name=member_symbol, kind=member_kind, file=member_file, arglist=None))
@@ -303,6 +310,12 @@ def join(*args):
 
 
 def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
+    parse_exception_ignore_regex_list = getattr(app.config, 'doxylink_parse_exception_ignore_regex_list')
+    parse_exception_ignore_pattern = re.compile('|'.join(parse_exception_ignore_regex_list)) if parse_exception_ignore_regex_list else None
+
+    if parse_exception_ignore_pattern:
+        report_info(app.env, f'Ignoring parsing exceptions using `{parse_exception_ignore_pattern}`')
+
     # Tidy up the root directory path
     if not rootdir.endswith(('/', '\\')):
         rootdir = join(rootdir, os.sep)
@@ -330,22 +343,22 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
         if not hasattr(app.env, 'doxylink_cache'):
             # no cache present at all, initialise it
             report_info(app.env, 'No cache at all, rebuilding...')
-            mapping = SymbolMap(_parse())
+            mapping = SymbolMap(_parse(), parse_exception_ignore_pattern)
             app.env.doxylink_cache = {cache_name: {'mapping': mapping, 'mtime': modification_time, 'version': __version__}}
         elif not app.env.doxylink_cache.get(cache_name):
             # Main cache is there but the specific sub-cache for this tag file is not
             report_info(app.env, 'Sub cache is missing, rebuilding...')
-            mapping = SymbolMap(_parse())
+            mapping = SymbolMap(_parse(), parse_exception_ignore_pattern)
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time, 'version': __version__}
         elif app.env.doxylink_cache[cache_name]['mtime'] < modification_time:
             # tag file has been modified since sub-cache creation
             report_info(app.env, 'Sub-cache is out of date, rebuilding...')
-            mapping = SymbolMap(_parse())
+            mapping = SymbolMap(_parse(), parse_exception_ignore_pattern)
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time}
         elif not app.env.doxylink_cache[cache_name].get('version') or app.env.doxylink_cache[cache_name].get('version') != __version__:
             # sub-cache doesn't have a version or the version doesn't match
             report_info(app.env, 'Sub-cache schema version doesn\'t match, rebuilding...')
-            mapping = SymbolMap(_parse())
+            mapping = SymbolMap(_parse(), parse_exception_ignore_pattern)
             app.env.doxylink_cache[cache_name] = {'mapping': mapping, 'mtime': modification_time, 'version': __version__}
         else:
             # The cache is up to date
