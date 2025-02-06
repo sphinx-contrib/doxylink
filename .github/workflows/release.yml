@@ -26,7 +26,10 @@ jobs:
       contents: write
     steps:
       # Set things up
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # Use ref here since we must commit on a branch
+          ssh-key: ${{secrets.DEPLOY_KEY}}
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -68,8 +71,8 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
       - name: Commit and tag
         run: |
-          git config --global user.name "Matt Williams"
-          git config --global user.email "milliams@users.noreply.github.com"
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
           git commit -m "Release ${{ steps.get_version.outputs.version }}"
           git tag "${{ steps.get_version.outputs.version }}"
           git push --atomic --tags origin HEAD
