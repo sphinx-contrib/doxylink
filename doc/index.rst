@@ -180,6 +180,9 @@ Configuration values
             'qtogre_doxygen.pdf': '/home/matt/qtogre/doxygen.pdf',
         }
 
+.. confval:: doxylink_parse_exception_ignore_regex_list
+
+    A list of regular expressions that can be used to ignore specific ``ParseException`` console messages. Default is ``[]``.
 
 Bug reports
 -----------
