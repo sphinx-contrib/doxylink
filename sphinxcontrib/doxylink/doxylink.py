@@ -134,7 +134,7 @@ def is_url(str_to_validate: str) -> bool:
 
 class SymbolMap:
     """A SymbolMap maps symbols to Entries."""
-    def __init__(self, xml_doc: ET.ElementTree, parse_exception_ignore_pattern: Union['re.Pattern', None]) -> None:
+    def __init__(self, xml_doc: ET.ElementTree, parse_exception_ignore_pattern: Union['re.Pattern', None] = None) -> None:
         entries = parse_tag_file(xml_doc, parse_exception_ignore_pattern)
 
         # Sort the entry list for use with bisect
