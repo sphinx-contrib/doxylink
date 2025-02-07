@@ -90,7 +90,7 @@ def test_file_different(examples_tag_file, symbol1, symbol2):
 
 def test_parse_tag_file(examples_tag_file):
     tag_file = ET.parse(examples_tag_file)
-    mapping = doxylink.parse_tag_file(tag_file)
+    mapping = doxylink.parse_tag_file(tag_file, None)
 
     def has_entry(name):
         """
