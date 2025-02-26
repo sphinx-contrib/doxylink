@@ -317,11 +317,7 @@ def join(*args):
     return ''.join(args)
 
 
-def create_role(app: 'sphinx.application.Sphinx',
-                tag_filename: str,
-                rootdir: str,
-                cache_name: str,
-                pdf: str = "") -> None:
+def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
     parse_error_ignore_regexes = getattr(app.config, 'doxylink_parse_error_ignore_regexes', [])
 
     if parse_error_ignore_regexes:
