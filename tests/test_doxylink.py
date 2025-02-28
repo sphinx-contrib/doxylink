@@ -90,7 +90,7 @@ def test_file_different(examples_tag_file, symbol1, symbol2):
 
 def test_parse_tag_file(examples_tag_file):
     tag_file = ET.parse(examples_tag_file)
-    mapping = doxylink.parse_tag_file(tag_file)
+    mapping = doxylink.parse_tag_file(tag_file, None)
 
     def has_entry(name):
         """
@@ -197,3 +197,60 @@ def test_process_configuration_warn(rootdir, pdf_filename, builder, msg):
     with LogCapture() as l:
         doxylink.process_configuration(app, 'doxygen/project.tag', rootdir, pdf_filename)
     l.check(('sphinx.sphinxcontrib.doxylink.doxylink', 'WARNING', msg))
+
+
+def test_parse_error_ignore_regexes():
+    # Create a modified tag file content with problematic entries
+    problematic_xml = """<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<tagfile>
+    <compound kind="file">
+        <name>test.h</name>
+        <filename>test_8h</filename>
+        <member kind="function">
+            <name>foo</name>
+            <arglist>(transform_pb2.Rotation2f a)</arglist>
+            <anchor>1234</anchor>
+        </member>
+        <member kind="function">
+            <name>bad</name>
+            <arglist>(*int i)</arglist>
+            <anchor>5678</anchor>
+        </member>
+        <member kind="function">
+            <name>baz</name>
+            <arglist>(int i, float f)</arglist>
+            <anchor>9012</anchor>
+        </member>
+        <member kind="function">
+            <name>unexpected</name>
+            <arglist>(*int i)</arglist>
+            <anchor>5678</anchor>
+        </member>
+    </compound>
+</tagfile>"""
+
+    # Write temporary tag file
+    test_tag_file = 'test_temp.tag'
+    with open(test_tag_file, 'w') as f:
+        f.write(problematic_xml)
+
+    try:
+        tag_file = ET.parse(test_tag_file)
+        patterns = [r'kipping function test\.h::foo', r'kipping.*bad']
+
+        with LogCapture() as log:
+            mapping = doxylink.parse_tag_file(tag_file, patterns)
+
+            # Verify that the mapping still contains valid entries
+            assert any(entry.name.endswith('baz') for entry in mapping)
+
+            # Verify that messages matching our patterns were not logged
+            assert not any('test.h::foo' in record.msg for record in log.records)
+            assert not any('bar' in record.msg for record in log.records)
+
+            # Verify other error messages were logged
+            assert any('Skipping' in record.msg for record in log.records)
+
+    finally:
+        if os.path.exists(test_tag_file):
+            os.unlink(test_tag_file)

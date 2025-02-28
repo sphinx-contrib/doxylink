@@ -4,3 +4,4 @@ parsing_profile
 sphinxcontrib_doxylink.egg-info/
 dist/
 build/
+examples/my_lib.tag

@@ -180,6 +180,13 @@ Configuration values
             'qtogre_doxygen.pdf': '/home/matt/qtogre/doxygen.pdf',
         }
 
+.. confval:: doxylink_parse_error_ignore_regexes
+
+    A list of regular expressions that can be used to ignore specific errors reported from the parser.
+    Default is ``[]``. This is useful if you have a lot of errors that you know are not important.
+    For example, you may want to ignore errors related to a specific namespace.
+    The regular expression is matched against the error message using Python's
+    `re.search <https://docs.python.org/3/library/re.html#re.search>`_ function.
 
 Bug reports
 -----------

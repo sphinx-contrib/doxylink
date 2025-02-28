@@ -46,3 +46,6 @@ enum Color { red, green, blue };
 
 // An enum class
 enum class Color_c { red, green, blue };
+
+// A function that triggers a warning from the parser
+void DEFINE_bool(show, false, "Enable visualization");
