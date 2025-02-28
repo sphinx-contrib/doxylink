@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add configuration variable to suppress specific parse errors [PR #65]
+
 ## [1.12.4] - 2025-02-06
 
 ### Changed
