@@ -1,4 +1,4 @@
-__version__ = "1.12.4"
+__version__ = "1.13.0"
 
 def setup(app):
     from .doxylink import setup_doxylink_roles
