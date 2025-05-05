@@ -255,6 +255,7 @@ def parse_tag_file(doc: ET.ElementTree, parse_error_ignore_regexes: Optional[Lis
 
         compound_name = compound.findtext('name')
         compound_filename = compound.findtext('filename')
+        compound_path = compound.findtext('path', '')  # Get path if available
 
         if compound_name is None:
             raise KeyError(f"Compound does not have a name")
@@ -267,8 +268,19 @@ def parse_tag_file(doc: ET.ElementTree, parse_error_ignore_regexes: Optional[Lis
         if compound_kind in ('file', 'page') and not os.path.splitext(compound_filename)[1]:
             compound_filename = compound_filename + '.html'
 
-        # If it's a compound we can simply add it
-        entries.append(Entry(compound_name, kind=compound_kind, file=compound_filename, arglist=None))
+        # For file entries, use the original name with path for lookup
+        if compound_kind == 'file':
+            entries.append(
+                Entry(
+                    name=join(compound_path, compound_name) if compound_path else compound_name,
+                    kind=compound_kind,
+                    file=compound_filename,
+                    arglist=None,
+                )
+            )
+        else:
+            # If it's a compound we can simply add it
+            entries.append(Entry(compound_name, kind=compound_kind, file=compound_filename, arglist=None))
 
         for member in compound.findall('member'):
             # If the member doesn't have an <anchorfile> element, use the parent compounds <filename> instead
@@ -385,8 +397,17 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
             warning_messages.append('Could not find match for `%s` because tag file not found' % part)
             return [nodes.inline(title, title)], []
 
+        # Handle path:filename format
+        target_path = None
+        target_name = part
+        if ':' in part:
+            target_path, target_name = part.split(':', 1)
+            # When looking up the file, include the path in the name
+            if target_path:
+                target_name = join(target_path, target_name)
+
         try:
-            url = app.env.doxylink_cache[cache_name]['mapping'][part]
+            url = app.env.doxylink_cache[cache_name]['mapping'][target_name]
         except LookupError as error:
             inliner.reporter.warning(f'Could not find match for `{part}` in `{tag_filename}` tag file. Error reported was {error}', line=lineno)
             return [nodes.inline(title, title)], []
