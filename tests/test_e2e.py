@@ -65,10 +65,20 @@ extern int ambiguous_var;
 /// Simple macro.
 #define SIMPLE_MACRO 42
 
-/// A function-like macro.
-#define FUNCTION_LIKE_MACRO(int x, int y);
+/// Function-like macro.
+#define FUNCTION_LIKE_MACRO_1(x)
 
+/// Function-like macro.
+#define FUNCTION_LIKE_MACRO_2(x, y);
 
+/// Variadic macro.
+#define VARIADIC_FUNCTION_LIKE_MACRO_1(...)
+
+/// Variadic macro.
+#define VARIADIC_FUNCTION_LIKE_MACRO_2(x, ...)
+
+/// Macro with a keyword as its parameter.
+#define MACRO_WITH_KEYWORD_PARAM(enum)
 """
 
 _CXX_NAMES = (
@@ -87,7 +97,11 @@ _CXX_NAMES = (
     ("secondary", "TestFunction"),
     ("secondary", "ambiguous_var"),
     (None, "SIMPLE_MACRO"),
-    (None, "FUNCTION_LIKE_MACRO"),
+    (None, "FUNCTION_LIKE_MACRO_1"),
+    (None, "FUNCTION_LIKE_MACRO_2"),
+    (None, "VARIADIC_FUNCTION_LIKE_MACRO_1"),
+    (None, "VARIADIC_FUNCTION_LIKE_MACRO_2"),
+    (None, "MACRO_WITH_KEYWORD_PARAM"),
 )
 
 # Assert that all names above are present in _CXX_SOURCE

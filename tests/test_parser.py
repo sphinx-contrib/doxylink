@@ -7,6 +7,8 @@ import pstats
 # List of tuples of: (input, correct output)
 # Input is a string, output is a tuple.
 arglists = [
+    ('(enum)', ('', '(enum)')),
+    ('(const)', ('', '(const)')),
     ('( QUrl source )', ('', '(QUrl)')),
     ('( QUrl * source )', ('', '(QUrl*)')),
     ('( QUrl ** source )', ('', '(QUrl**)')),
@@ -62,6 +64,8 @@ varargs = [
     ('fprintf( std::FILE* stream, const char* format, ... )', ('fprintf', '(std::FILE*, const char*, ...)')),
     ('sprintf( char* buffer, const char* format, ... )', ('sprintf', '(char*, const char*, ...)')),
     ('snprintf( char* buffer, std::size_t buf_size, const char* format, ... )', ('snprintf', '(char*, std::size_t, const char*, ...)')),
+    ('MACRO(...)', ('MACRO', '(...)')),
+    ('(...)', ('', '(...)')),
 ]
 
 multiple_qualifiers = [
