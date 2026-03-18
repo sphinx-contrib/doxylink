@@ -2,7 +2,7 @@ from typing import Tuple
 
 from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt, \
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString, \
-    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore
+    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore, Empty, replaceWith
 
 # define punctuation - reuse of expressions helps packratting work better
 LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=")
@@ -56,8 +56,10 @@ pointer_or_reference = pointer | reference
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | curly_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
-argument_type = Opt(qualifier, default='')("qualifier1") + \
-                input_type("input_type").setParseAction(' '.join) + \
+argument_type_prefix = (qualifier("qualifier1") + input_type("input_type").setParseAction(' '.join)) | \
+                       (Empty().setParseAction(replaceWith(''))("qualifier1") + input_type("input_type").setParseAction(' '.join))
+
+argument_type = argument_type_prefix + \
                 Opt(qualifier, default='')("qualifier2") + \
                 Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \
                 Opt('...')("parameter_pack")
@@ -66,7 +68,7 @@ argument_type = Opt(qualifier, default='')("qualifier1") + \
 argument = Group(argument_type('argument_type') + Opt(input_name) + Opt(default_value))
 
 # List of arguments in parentheses with an optional 'const' on the end
-arglist = LPAR + delimitedList(argument)('arg_list') + Opt(COMMA + '...')('var_args') + RPAR
+arglist = LPAR + Opt(delimitedList(argument)('arg_list')) + Opt(COMMA) + Opt('...')('var_args') + RPAR
 
 
 def normalise(symbol: str) -> Tuple[str, str]:
