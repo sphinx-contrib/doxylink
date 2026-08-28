@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `.readthedocs.yaml` and declare `sphinx-rtd-theme` as an optional `doc` dependency; the documentation site's builds were failing silently and serving a stale build that was missing recently documented configuration values [Issue #73]
 - Parse C++11-style attributes (e.g. `[[maybe_unused]]`, `[[deprecated("...")]]`) on function arguments instead of failing to parse the whole signature [Issue #68]
 
+### Changed
+
+- Drop support for Python 3.7 (end of life since June 2023); the minimum supported version is now Python 3.8, matching what CI has been testing
+
 ## [1.13.0] - 2025-02-28
 
 ### Added
