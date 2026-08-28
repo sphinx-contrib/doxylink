@@ -412,7 +412,7 @@ def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
         if url.kind == 'function' and app.config.add_function_parentheses and normalise(title)[1] == '' and not has_explicit_title:
             title = join(title, '()')
 
-        pnode = nodes.reference(title, title, internal=False, refuri=full_url)
+        pnode = nodes.reference(title, title, internal=False, refuri=full_url, classes=['doxylink'])
         return [pnode], []
 
     return find_doxygen_link
