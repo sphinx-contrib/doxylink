@@ -27,6 +27,7 @@ doc = ["sphinx-rtd-theme"]
 pytest = "^8.0"
 testfixtures = "^8.0.0"
 mypy = "^1.4"
+exceptiongroup = {version = "^1.0", python = "<3.11"}
 
 [tool.pytest.ini_options]
 testpaths = ["sphinxcontrib", "tests"]
