@@ -267,6 +267,15 @@ def parse_tag_file(doc: ET.ElementTree, parse_error_ignore_regexes: Optional[Lis
         if compound_kind in ('file', 'page') and not os.path.splitext(compound_filename)[1]:
             compound_filename = compound_filename + '.html'
 
+        # For files, Doxygen records the containing directory in <path>. Prefixing it onto the
+        # name (using '/', which can't appear in a C++ symbol) lets users disambiguate identically
+        # named files in different directories, e.g. `src/hal/adc.c` as well as plain `adc.c`,
+        # while reusing the existing suffix-matching in Entry.matches() -- no new syntax needed.
+        if compound_kind == 'file':
+            compound_path = compound.findtext('path')
+            if compound_path:
+                compound_name = '/'.join([compound_path.rstrip('/\\'), compound_name])
+
         # If it's a compound we can simply add it
         entries.append(Entry(compound_name, kind=compound_kind, file=compound_filename, arglist=None))
 
