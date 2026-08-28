@@ -26,12 +26,12 @@ jobs:
       contents: write
     steps:
       # Set things up
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.ref }}  # Use ref here since we must commit on a branch
           ssh-key: ${{secrets.DEPLOY_KEY}}
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v7
         with:
           python-version: "3.*"
       - name: Install Poetry
