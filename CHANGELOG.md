@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Allow disambiguating identically named files in different directories by including part of the containing path, e.g. `src/hal/peripheral/adc.c`, reusing the existing name-suffix matching so plain filenames keep working unchanged (reimplements the feature proposed in PR #69)
+
 - Add a `doxylink` CSS class to generated links so they can be targeted for custom styling [Issue #70]
 
 ### Fixed
