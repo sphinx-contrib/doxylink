@@ -112,6 +112,16 @@ You can also link directly to a header or source file by giving the name of the 
     :myapi:`main.cpp`
     :myapi:`MainWindow.h`
 
+Styling
+^^^^^^^
+
+Every link that Doxylink generates is given the ``doxylink`` CSS class, in addition to Sphinx's usual ``reference external`` classes,
+so that they can be targeted for custom styling:
+
+.. code-block:: html
+
+    <a class="reference external doxylink" href="...">PolyVox::Volume::getVoxelAt</a>
+
 Setup
 -----
 

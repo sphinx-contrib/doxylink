@@ -254,3 +254,37 @@ def test_parse_error_ignore_regexes():
     finally:
         if os.path.exists(test_tag_file):
             os.unlink(test_tag_file)
+
+
+def test_create_role_adds_doxylink_css_class():
+    entry = MagicMock()
+    entry.file = 'foo.html'
+    entry.kind = 'namespace'
+
+    tag_filename = __file__  # any existing file; the cache is seeded as up to date so it is never parsed
+    cache_name = 'doxylink_css_class_test'
+
+    class FakeEnv:
+        pass
+
+    env = FakeEnv()
+    env.doxylink_cache = {
+        cache_name: {
+            'mapping': {'foo': entry},
+            'mtime': os.path.getmtime(tag_filename),
+            'version': doxylink.__version__,
+        }
+    }
+
+    app = MagicMock()
+    app.env = env
+    app.config.doxylink_parse_error_ignore_regexes = []
+    app.config.add_function_parentheses = True
+
+    role = doxylink.create_role(app, tag_filename, 'https://example.com', cache_name)
+
+    pnodes, messages = role('cpp:doxylink', ':cpp:doxylink:`foo`', 'foo', 1, MagicMock())
+
+    assert messages == []
+    assert len(pnodes) == 1
+    assert pnodes[0]['classes'] == ['doxylink']
