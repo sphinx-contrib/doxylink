@@ -130,6 +130,12 @@ multiple_namespaces = [
 
 keywords_almost_in_typenames = [
     ('evolve(quantumdata::StateVector &, const structure::QuantumSystem &, const evolution::Pars &)', ('evolve', '(quantumdata::StateVector&, const structure::QuantumSystem&, const evolution::Pars&)')),
+    # C++ arguments whose *name* happens to collide with the C#-only 'ref'/'out'/'in'
+    # parameter modifiers (see `csharp_specific` below). Those modifiers are only valid
+    # in front of the type, so an argument name in this (trailing) position must still
+    # be parsed as a plain identifier, not mistaken for a modifier.
+    ('encode(int in, int out)', ('encode', '(int, int)')),
+    ('write(Buffer ref)', ('write', '(Buffer)')),
 ]
 
 csharp_specific = [

@@ -33,6 +33,14 @@ def canonicalise_separators(name: str) -> str:
     
     Please note that collapsing in this direction (rather than `.` -> `::`) keeps real
     dots that are part of a name working (example: the filename in `my_lib.h::MY_MACRO`).
+
+    Known tradeoff: because `::` and `.` become interchangeable, a namespace/member
+    symbol such as ``my_lib::h`` canonicalises to the same string as an unrelated
+    *file* named ``my_lib.h``. :meth:`SymbolMap._disambiguate` may then pick either one
+    (see ``test_file_name_collides_with_canonicalised_member``). This could be resolved
+    by using the original (pre-canonicalisation) spelling together with each
+    candidate's `kind`, but doing so would slow down resolution and make code more complex
+    to handle rare cases.
     '''
     return name.replace('::', '.')
 

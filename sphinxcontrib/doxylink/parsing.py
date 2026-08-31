@@ -8,8 +8,18 @@ from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt, \
 LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=")
 
 # Qualifier to go in front of type in the argument list (unsigned const int foo).
-qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum') ^ Keyword('ref') ^ Keyword('out') ^ Keyword('in'))
+qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
 qualifier = ungroup(qualifier_grouped.addParseAction(' '.join))
+
+# C# parameter-passing modifiers (``ref``/``out``/``in``). These are keywords that only
+# ever appear *before* the type (e.g. ``void MyMethod(ref MyClass byRef)``), never after
+# it. They must therefore not be added to the generic ``qualifier`` above: since that is
+# also used for the *trailing* qualifier position (``qualifier2``, for C++'s postfix
+# ``const``/``volatile``), doing so would make the parser mistake a C++ argument merely
+# *named* ``in``, ``out`` or ``ref`` (e.g. ``void encode(int in, int out)``) for one of
+# these C# modifiers, silently dropping the argument name instead of the modifier.
+prefix_qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum') ^ Keyword('ref') ^ Keyword('out') ^ Keyword('in'))
+prefix_qualifier = ungroup(prefix_qualifier_grouped.addParseAction(' '.join))
 
 
 def turn_parseresults_to_list(s, loc, toks):
@@ -56,7 +66,7 @@ pointer_or_reference = pointer | reference
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | curly_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
-argument_type = Opt(qualifier, default='')("qualifier1") + \
+argument_type = Opt(prefix_qualifier, default='')("qualifier1") + \
                 input_type("input_type").setParseAction(' '.join) + \
                 Opt(qualifier, default='')("qualifier2") + \
                 Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \
