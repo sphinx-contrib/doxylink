@@ -167,6 +167,16 @@ python_specific = [
     ('my_func_with_union(MyType|None value)', ('my_func_with_union', '(MyType|None)')),
 ]
 
+attributes = [
+    ('([[maybe_unused]] int foo)', ('', '(int)')),
+    ('(int a, [[maybe_unused]] int b)', ('', '(int, int)')),
+    ('([[deprecated("use bar instead")]] const int &foo)', ('', '(const int&)')),
+]
+
+default_brace_init = [
+    ('(const Name &name={}, int lifetime=5)', ('', '(const Name&, int)')),
+]
+
 
 @pytest.mark.parametrize('test_input, expected', functions)
 def test_split_function(test_input, expected):
@@ -220,6 +230,16 @@ def test_csharp(test_input, expected):
 
 @pytest.mark.parametrize('test_input, expected', python_specific)
 def test__python(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', attributes)
+def test_attributes(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', default_brace_init)
+def test_default_brace_init(test_input, expected):
     assert parsing.normalise(test_input) == expected
 
 

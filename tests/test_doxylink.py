@@ -3,6 +3,7 @@ import glob
 import os
 import os.path
 import subprocess
+import textwrap
 import xml.etree.ElementTree as ET
 from unittest.mock import MagicMock
 
@@ -10,6 +11,46 @@ import pytest
 from testfixtures import LogCapture
 
 from sphinxcontrib.doxylink import doxylink
+
+
+DUPLICATE_FILENAMES_IN_DIFFERENT_DIRS = textwrap.dedent("""\
+    <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+    <tagfile>
+        <compound kind="file">
+            <name>adc.c</name>
+            <path>src/bsp/drv</path>
+            <filename>bsp_drv_adc_8c.html</filename>
+            <member kind="function">
+                <type>int</type>
+                <name>adc_read</name>
+                <anchorfile>bsp_drv_adc_8c.html</anchorfile>
+                <anchor>a1</anchor>
+                <arglist>()</arglist>
+            </member>
+        </compound>
+        <compound kind="file">
+            <name>adc.c</name>
+            <path>src/hal/peripheral</path>
+            <filename>hal_peripheral_adc_8c.html</filename>
+            <member kind="function">
+                <type>int</type>
+                <name>adc_init</name>
+                <anchorfile>hal_peripheral_adc_8c.html</anchorfile>
+                <anchor>a2</anchor>
+                <arglist>()</arglist>
+            </member>
+        </compound>
+        <compound kind="namespace">
+            <name>PolyVox</name>
+            <filename>namespacePolyVox.html</filename>
+            <class kind="class">PolyVox::Array</class>
+        </compound>
+        <compound kind="class">
+            <name>PolyVox::Array</name>
+            <filename>classPolyVox_1_1Array.html</filename>
+        </compound>
+    </tagfile>
+    """)
 
 
 @pytest.fixture
@@ -268,3 +309,76 @@ def test_parse_error_ignore_regexes():
     finally:
         if os.path.exists(test_tag_file):
             os.unlink(test_tag_file)
+
+
+def test_create_role_adds_doxylink_css_class():
+    entry = MagicMock()
+    entry.file = 'foo.html'
+    entry.kind = 'namespace'
+
+    tag_filename = __file__  # any existing file; the cache is seeded as up to date so it is never parsed
+    cache_name = 'doxylink_css_class_test'
+
+    class FakeEnv:
+        pass
+
+    env = FakeEnv()
+    env.doxylink_cache = {
+        cache_name: {
+            'mapping': {'foo': entry},
+            'mtime': os.path.getmtime(tag_filename),
+            'version': doxylink.__version__,
+        }
+    }
+
+    app = MagicMock()
+    app.env = env
+    app.config.doxylink_parse_error_ignore_regexes = []
+    app.config.add_function_parentheses = True
+
+    role = doxylink.create_role(app, tag_filename, 'https://example.com', cache_name)
+
+    pnodes, messages = role('cpp:doxylink', ':cpp:doxylink:`foo`', 'foo', 1, MagicMock())
+
+    assert messages == []
+    assert len(pnodes) == 1
+    assert pnodes[0]['classes'] == ['doxylink']
+
+
+@pytest.mark.parametrize('symbol, expected_file', [
+    ('adc.c', None),  # ambiguous: could be either file, don't care which one wins
+    ('src/bsp/drv/adc.c', 'bsp_drv_adc_8c.html'),
+    ('drv/adc.c', 'bsp_drv_adc_8c.html'),
+    ('src/hal/peripheral/adc.c', 'hal_peripheral_adc_8c.html'),
+    ('peripheral/adc.c', 'hal_peripheral_adc_8c.html'),
+])
+def test_duplicate_filenames_disambiguated_by_path(symbol, expected_file):
+    tag_file = ET.ElementTree(ET.fromstring(DUPLICATE_FILENAMES_IN_DIFFERENT_DIRS))
+    mapping = doxylink.SymbolMap(tag_file)
+
+    entry = mapping[symbol]
+    if expected_file is not None:
+        assert entry.file == expected_file
+
+
+@pytest.mark.parametrize('symbol, expected_file', [
+    ('adc_read', 'bsp_drv_adc_8c.html#a1'),
+    ('bsp/drv/adc.c::adc_read', 'bsp_drv_adc_8c.html#a1'),
+    ('adc_init', 'hal_peripheral_adc_8c.html#a2'),
+    ('peripheral/adc.c::adc_init', 'hal_peripheral_adc_8c.html#a2'),
+])
+def test_members_of_path_qualified_files_are_reachable(symbol, expected_file):
+    tag_file = ET.ElementTree(ET.fromstring(DUPLICATE_FILENAMES_IN_DIFFERENT_DIRS))
+    mapping = doxylink.SymbolMap(tag_file)
+
+    assert mapping[symbol].file == expected_file
+
+
+def test_path_qualified_files_do_not_break_namespace_lookup():
+    # Regression test: a naive path/filename delimiter could collide with '::' and break
+    # ordinary namespace-qualified lookups. '/' cannot appear in a C++ symbol, so it doesn't.
+    tag_file = ET.ElementTree(ET.fromstring(DUPLICATE_FILENAMES_IN_DIFFERENT_DIRS))
+    mapping = doxylink.SymbolMap(tag_file)
+
+    assert mapping['PolyVox::Array'].file == 'classPolyVox_1_1Array.html'
+    assert mapping['PolyVox'].file == 'namespacePolyVox.html'

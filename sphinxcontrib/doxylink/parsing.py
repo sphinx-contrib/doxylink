@@ -2,7 +2,7 @@ from typing import Tuple
 
 from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt, \
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString, \
-    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore
+    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore, Suppress
 
 # define punctuation - reuse of expressions helps packratting work better
 LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=")
@@ -20,6 +20,9 @@ qualifier = ungroup(qualifier_grouped.addParseAction(' '.join))
 # these C# modifiers, silently dropping the argument name instead of the modifier.
 prefix_qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum') ^ Keyword('ref') ^ Keyword('out') ^ Keyword('in'))
 prefix_qualifier = ungroup(prefix_qualifier_grouped.addParseAction(' '.join))
+
+# A C++11-style attribute, e.g. '[[maybe_unused]]' or '[[deprecated("reason")]]'. The contents are discarded.
+attribute = Suppress(Literal('[[') + SkipTo(Literal(']]')) + Literal(']]'))
 
 
 def turn_parseresults_to_list(s, loc, toks):
@@ -66,7 +69,8 @@ pointer_or_reference = pointer | reference
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | curly_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
-argument_type = Opt(prefix_qualifier, default='')("qualifier1") + \
+argument_type = Opt(attribute) + \
+                Opt(prefix_qualifier, default='')("qualifier1") + \
                 input_type("input_type").setParseAction(' '.join) + \
                 Opt(qualifier, default='')("qualifier2") + \
                 Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \

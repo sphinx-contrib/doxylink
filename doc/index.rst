@@ -113,6 +113,31 @@ You can also link directly to a header or source file by giving the name of the 
     :myapi:`main.cpp`
     :myapi:`MainWindow.h`
 
+If your project has multiple files with the same name in different directories, a plain filename is ambiguous and Doxylink will
+pick one of them arbitrarily. You can disambiguate by including as much of the containing directory path as you need
+(as recorded by Doxygen, which usually means the path relative to Doxygen's ``INPUT``/``STRIP_FROM_PATH`` settings):
+
+.. code-block:: rst
+
+    :myapi:`drv/adc.c`
+    :myapi:`src/hal/peripheral/adc.c`
+
+This also works for symbols defined in the file:
+
+.. code-block:: rst
+
+    :myapi:`src/hal/peripheral/adc.c::adc_init`
+
+Styling
+^^^^^^^
+
+Every link that Doxylink generates is given the ``doxylink`` CSS class, in addition to Sphinx's usual ``reference external`` classes,
+so that they can be targeted for custom styling:
+
+.. code-block:: html
+
+    <a class="reference external doxylink" href="...">PolyVox::Volume::getVoxelAt</a>
+
 Setup
 -----
 

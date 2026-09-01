@@ -1,5 +1,8 @@
 INPUT                  = src
 RECURSIVE              = YES
+# Report file paths relative to the source root, so that the tag file records e.g.
+# `mypackage/my_module.py` rather than `src/mypackage/my_module.py`.
+STRIP_FROM_PATH        = src
 FILE_PATTERNS          = *.h,*.cs,*.py
 EXTRACT_ALL            = YES
 GENERATE_TAGFILE       = my_lib.tag

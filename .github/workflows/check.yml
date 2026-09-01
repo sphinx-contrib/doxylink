@@ -20,12 +20,12 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Install doxygen
         run: |
           sudo apt install -y doxygen
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install Poetry
@@ -38,3 +38,34 @@ jobs:
         run: poetry run pytest
       - name: Test that package builds
         run: poetry build
+
+  build-docs:
+    name: Build documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install tox and Poetry
+        run: pip install tox poetry
+      - name: Build docs
+        run: tox -e doc
+
+  build-examples:
+    name: Build examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install doxygen
+        run: |
+          sudo apt install -y doxygen
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install tox and Poetry
+        run: pip install tox poetry
+      - name: Build examples
+        run: tox -e examples
