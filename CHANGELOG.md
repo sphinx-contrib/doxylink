@@ -14,10 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Adds support for C# and Python languages.
 - Allow disambiguating identically named files in different directories by including part of the containing path, e.g. `src/hal/peripheral/adc.c`, reusing the existing name-suffix matching so plain filenames keep working unchanged (reimplements the feature proposed in PR #69)
 
 - Add a `doxylink` CSS class to generated links so they can be targeted for custom styling [Issue #70]
+
+- Adds support for C# and Python languages.
 
 ### Fixed
 
@@ -26,10 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Drop support for Python 3.7 (end of life since June 2023); the minimum supported version is now Python 3.8, matching what CI has been testing
 - Alter separators handling to consider `::` and `.` as equivalent. As example, it is possible to refer to a C++ type
     with `MyNamespace.MyType` or to a Python type with `my_module::MyType`. This change was made to match Doxygen's
     own reference resolution algorithm while simplifying the implementation.
-- Drop support for Python 3.7 (end of life since June 2023); the minimum supported version is now Python 3.8, matching what CI has been testing
 
 ## [1.13.0] - 2025-02-28
 
