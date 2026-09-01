@@ -130,6 +130,41 @@ multiple_namespaces = [
 
 keywords_almost_in_typenames = [
     ('evolve(quantumdata::StateVector &, const structure::QuantumSystem &, const evolution::Pars &)', ('evolve', '(quantumdata::StateVector&, const structure::QuantumSystem&, const evolution::Pars&)')),
+    # C++ arguments whose *name* happens to collide with the C#-only 'ref'/'out'/'in'
+    # parameter modifiers (see `csharp_specific` below). Those modifiers are only valid
+    # in front of the type, so an argument name in this (trailing) position must still
+    # be parsed as a plain identifier, not mistaken for a modifier.
+    ('encode(int in, int out)', ('encode', '(int, int)')),
+    ('write(Buffer ref)', ('write', '(Buffer)')),
+]
+
+csharp_specific = [
+    # fully-qualified type names keep their dots
+    ('MyMethod(System.String foo)', ('MyMethod', '(System.String)')),
+    ('MyMethod(System.String a, System.Int32 b)', ('MyMethod', '(System.String, System.Int32)')),
+    ('Process(System.Collections.Generic.List< System.String > items)',
+        ('Process', '(System.Collections.Generic.List< System.String >)')),
+    # parameter-passing modifiers ref/out/in are kept in front of the type
+    ('MyMethod(ref MyClass byRef)',
+        ('MyMethod', '(ref MyClass)')),
+    ('MyMethod(out MyClass result)', ('MyMethod', '(out MyClass)')),
+    ('MyMethod(in MyClass value)', ('MyMethod', '(in MyClass)')),
+]
+
+python_specific = [
+    # fully-qualified type names keep their dots
+    ('my_method(my_package.MyClass foo)', ('my_method', '(my_package.MyClass)')),
+    # untyped positional, keyword, *args and **kwargs
+    ('my_func_with_args(a, b=3, *args, **kwargs)', ('my_func_with_args', '(a, b, *args, **kwargs)')),
+    # typed args (already reordered to C++ order by Doxygen)
+    ('my_method_with_args(self, str name, int count)', ('my_method_with_args', '(self, str, int)')),
+    # a quoted, fully-qualified generic annotation
+    ('my_method_with_qualified_args(self, "typing.List[str]" items)',
+        ('my_method_with_qualified_args', '(self, "typing.List[str]")')),
+    # usage of '|' in types
+    ('my_method_with_union_args(self, my_package.MyClass|None source, my_package.OtherClass region)',
+        ('my_method_with_union_args', '(self, my_package.MyClass|None, my_package.OtherClass)')),
+    ('my_func_with_union(MyType|None value)', ('my_func_with_union', '(MyType|None)')),
 ]
 
 attributes = [
@@ -185,6 +220,16 @@ def test_multiple_namespaces(test_input, expected):
 
 @pytest.mark.parametrize('test_input, expected', keywords_almost_in_typenames)
 def test_keywords_almost_in_typenames(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', csharp_specific)
+def test_csharp(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', python_specific)
+def test__python(test_input, expected):
     assert parsing.normalise(test_input) == expected
 
 

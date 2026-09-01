@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add a `doxylink` CSS class to generated links so they can be targeted for custom styling [Issue #70]
 
+- Adds support for C# and Python languages.
+
 ### Fixed
 
 - Add `.readthedocs.yaml` and declare `sphinx-rtd-theme` as an optional `doc` dependency; the documentation site's builds were failing silently and serving a stale build that was missing recently documented configuration values [Issue #73]
@@ -26,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Drop support for Python 3.7 (end of life since June 2023); the minimum supported version is now Python 3.8, matching what CI has been testing
+- Alter separators handling to consider `::` and `.` as equivalent. As example, it is possible to refer to a C++ type
+    with `MyNamespace.MyType` or to a Python type with `my_module::MyType`. This change was made to match Doxygen's
+    own reference resolution algorithm while simplifying the implementation.
 
 ## [1.13.0] - 2025-02-28
 

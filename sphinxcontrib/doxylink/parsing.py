@@ -7,9 +7,19 @@ from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt, \
 # define punctuation - reuse of expressions helps packratting work better
 LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=")
 
-# Qualifier to go in front of type in the argument list (unsigned const int foo)
+# Qualifier to go in front of type in the argument list (unsigned const int foo).
 qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
 qualifier = ungroup(qualifier_grouped.addParseAction(' '.join))
+
+# C# parameter-passing modifiers (``ref``/``out``/``in``). These are keywords that only
+# ever appear *before* the type (e.g. ``void MyMethod(ref MyClass byRef)``), never after
+# it. They must therefore not be added to the generic ``qualifier`` above: since that is
+# also used for the *trailing* qualifier position (``qualifier2``, for C++'s postfix
+# ``const``/``volatile``), doing so would make the parser mistake a C++ argument merely
+# *named* ``in``, ``out`` or ``ref`` (e.g. ``void encode(int in, int out)``) for one of
+# these C# modifiers, silently dropping the argument name instead of the modifier.
+prefix_qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum') ^ Keyword('ref') ^ Keyword('out') ^ Keyword('in'))
+prefix_qualifier = ungroup(prefix_qualifier_grouped.addParseAction(' '.join))
 
 # A C++11-style attribute, e.g. '[[maybe_unused]]' or '[[deprecated("reason")]]'. The contents are discarded.
 attribute = Suppress(Literal('[[') + SkipTo(Literal(']]')) + Literal(']]'))
@@ -40,7 +50,7 @@ square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
 curly_bracket_pair = LCBRACK + SkipTo(RCBRACK) + RCBRACK
 
 # TODO I guess this should be a delimited list (by '::') of name and angle brackets
-nonfundamental_input_type = Combine(Word(alphanums + ':_') + Opt(angle_bracket_pair + Opt(Word(alphanums + ':_'))))
+nonfundamental_input_type = Combine(Word(alphanums + ':_.|') + Opt(angle_bracket_pair + Opt(Word(alphanums + ':_.|'))))
 fundamental_input_type = OneOrMore(Keyword('bool') ^ Keyword('short') ^ Keyword('int') ^ Keyword('long') ^ Keyword('signed') ^ Keyword('unsigned') ^ Keyword('char') ^ Keyword('float') ^ Keyword('double'))
 input_type = fundamental_input_type ^ nonfundamental_input_type
 
@@ -60,14 +70,27 @@ default_value = Literal('=') + OneOrMore(number | quotedString | input_type | pa
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
 argument_type = Opt(attribute) + \
-                Opt(qualifier, default='')("qualifier1") + \
+                Opt(prefix_qualifier, default='')("qualifier1") + \
                 input_type("input_type").setParseAction(' '.join) + \
                 Opt(qualifier, default='')("qualifier2") + \
                 Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \
                 Opt('...')("parameter_pack")
 
+# Python ``*args`` / ``**kwargs`` arguments have no type, just leading stars and a name.
+# Doxygen emits these as-is in the arglist.
+star_arg = Combine(OneOrMore(Literal('*')) + Word(alphanums + '_'))
+
+# A Python argument whose annotation Doxygen rendered as a quoted string, e.g.
+# ``"typing.List[str]" items``. The quoted string is the type; a name must follow it
+# (a lone quoted string is not a valid argument -- see test_false_signatures).
+quoted_argument = quotedString("input_type") + input_name
+
 # Argument + variable name + default
-argument = Group(argument_type('argument_type') + Opt(input_name) + Opt(default_value))
+argument = Group(
+    quoted_argument
+    | (argument_type('argument_type') + Opt(input_name) + Opt(default_value))
+    | star_arg("input_type")
+)
 
 # List of arguments in parentheses with an optional 'const' on the end
 arglist = LPAR + delimitedList(argument)('arg_list') + Opt(COMMA + '...')('var_args') + RPAR

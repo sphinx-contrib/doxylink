@@ -22,15 +22,45 @@ from . import __version__
 from .parsing import normalise, ParseException
 
 
-class Entry(namedtuple('_Entry', ['name', 'kind', 'file', 'arglist'])):
-    '''Represents a documentation entry produced by Doxygen.'''
+def canonicalise_separators(name: str) -> str:
+    '''
+    Returns `name` with all scope separators reduced to a single canonical form.
 
-    def matches(self, name: str, kind: Optional[str], arglist: Optional[str]) -> bool:
+    Doxygen treats `.` and `::` as equivalent scope separators when resolving
+    references through a tag file, regardless of the source language (so `::` works
+    in Python references and `.` works in C++ references). We mirror that by collapsing
+    `::` to `.` for comparison purposes only.
+    
+    Please note that collapsing in this direction (rather than `.` -> `::`) keeps real
+    dots that are part of a name working (example: the filename in `my_lib.h::MY_MACRO`).
+
+    Known tradeoff: because `::` and `.` become interchangeable, a namespace/member
+    symbol such as ``my_lib::h`` canonicalises to the same string as an unrelated
+    *file* named ``my_lib.h``. :meth:`SymbolMap._disambiguate` may then pick either one
+    (see ``test_file_name_collides_with_canonicalised_member``). This could be resolved
+    by using the original (pre-canonicalisation) spelling together with each
+    candidate's `kind`, but doing so would slow down resolution and make code more complex
+    to handle rare cases.
+    '''
+    return name.replace('::', '.')
+
+
+class Entry(namedtuple('_Entry', ['name', 'kind', 'file', 'arglist', 'canonical_name'])):
+    '''Represents a documentation entry produced by Doxygen.
+    '''
+
+    def __new__(cls, name, kind, file, arglist, canonical_name=None):
+        if canonical_name is None:
+            canonical_name = canonicalise_separators(name)
+        return super().__new__(cls, name, kind, file, arglist, canonical_name)
+
+    def matches(self, canonical_name: str, kind: Optional[str], arglist: Optional[str]) -> bool:
         '''
         Checks whether this entry has the specified name, kind, and argument list.
 
         Args:
-            name (str): symbol name
+            canonical_name (str): symbol name, must be already canonicalised by the caller
+                (see :func:`canonicalise_separators`)
             kind (Optional[str]): restrict to symbols of this kind
             arglist (Optional[str]): normalized argument list for overload resolution
         '''
@@ -39,12 +69,12 @@ class Entry(namedtuple('_Entry', ['name', 'kind', 'file', 'arglist'])):
         if kind and self.kind != kind:
             return False
 
-        # Ensure the name matches
-        if not self.name.endswith(name):
+        # Ensure the name matches.
+        if not self.canonical_name.endswith(canonical_name):
             return False
 
         # "do_foo" doesn't match "foo"
-        prefix = self.name[:-len(name)]
+        prefix = self.canonical_name[:-len(canonical_name)]
         if prefix and (prefix[-1].isidentifier() or prefix[-1].isnumeric()):
             return False
 
@@ -58,12 +88,13 @@ class Entry(namedtuple('_Entry', ['name', 'kind', 'file', 'arglist'])):
     def __lt__(self, other: Union["Entry", str]) -> bool:  # type:ignore
         '''
         Compares entries for sorting by reverse name. This allows `SymbolMap` to
-        match "foo::bar" when searching for "bar".
+        match "foo::bar" when searching for "bar". If passing a str it must be already
+        canonicalised by the caller (see :func:`canonicalise_separators`)
         '''
 
         if isinstance(other, Entry):
-            return self.name[::-1] < other.name[::-1]
-        return self.name[::-1] < other
+            return self.canonical_name[::-1] < other.canonical_name[::-1]
+        return self.canonical_name[::-1] < other
 
 
     @property
@@ -141,43 +172,43 @@ class SymbolMap:
         self._entries = sorted(entries)
 
 
-    def _find_entries(self, name: str, kind: Optional[str], arglist: Optional[str]) -> List[Entry]:
+    def _find_entries(self, canonical_name: str, kind: Optional[str], arglist: Optional[str]) -> List[Entry]:
         '''
         Finds all potentially matching entries in the symbol list.
 
         Args:
-            name (str): the name symbol to search for
+            canonical_name (str): the name symbol to search for in canonical form (see :func:`canonicalise_separators`)
             kind (Optional[str]): the kind of symbols to search for
             arglist (str): normalised function argument list
 
         Returns:
-            list[Entry]: all entries whose name ends with 'name'
+            list[Entry]: all entries whose name ends with 'canonical_name'
         '''
 
         matches = []
 
         # Thanks to the sorting, all we need to do is iterate from the first to
         # the last matching entry.
-        start = bisect.bisect_left(self._entries, name[::-1])  # type:ignore
+        start = bisect.bisect_left(self._entries, canonical_name[::-1])  # type:ignore
         for candidate in self._entries[start:]:
-            if not candidate.name.endswith(name):
+            if not candidate.canonical_name.endswith(canonical_name):
                 # Reached the end of entries that end in 'name'
                 break
 
-            if candidate.matches(name, kind, arglist):
+            if candidate.matches(canonical_name, kind, arglist):
                 # Found one
                 matches.append(candidate)
 
         return matches
 
 
-    def _disambiguate(self, name: str, candidates: List[Entry]) -> Entry:
+    def _disambiguate(self, canonical_name: str, candidates: List[Entry]) -> Entry:
         '''
         Returns the best-fitting candidate for the given symbol name. All
         candidates are expected to be valid.
 
         Args:
-            name (str): symbol name
+            canonical_name (str): symbol name in canonical form (see :func:`canonicalise_separators`)
             candidates (list[Entry]): list of candidates to choose from
 
         Returns:
@@ -185,10 +216,10 @@ class SymbolMap:
         '''
 
         if not candidates:
-            raise LookupError(f'No documentation entry matching "{name}"')
+            raise LookupError(f'No documentation entry matching "{canonical_name}"')
 
         # An exact match would appear at the beginning of the list.
-        if len(candidates) == 1 or candidates[0].name == name:
+        if len(candidates) == 1 or candidates[0].canonical_name == canonical_name:
             return candidates[0]
 
         # If there is more than one candidate then there is an ambiguity
@@ -219,10 +250,12 @@ class SymbolMap:
     def __getitem__(self, item: str) -> Entry:
         symbol, normalised_arglist = normalise(item)
 
+        canonical_name = canonicalise_separators(symbol)
+
         # Restrict to functions when given an argument list
         kind = 'function' if normalised_arglist else None
-        candidates = self._find_entries(symbol, kind, normalised_arglist)
-        return self._disambiguate(symbol, candidates)
+        candidates = self._find_entries(canonical_name, kind, normalised_arglist)
+        return self._disambiguate(canonical_name, candidates)
 
 
 def parse_tag_file(doc: ET.ElementTree, parse_error_ignore_regexes: Optional[List[str]]) -> List[Entry]:
