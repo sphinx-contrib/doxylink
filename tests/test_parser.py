@@ -262,7 +262,7 @@ def test_false_signatures():
         parsing.normalise('("center")')
 
 
-@pytest.mark.parametrize('test_input', ['M(x,)', 'M(,)', 'M(, ...)'])
+@pytest.mark.parametrize('test_input', ['M(x,)', 'M(,)', 'M(, ...)', 'M(..., ...)', 'M(.)', 'M(..)'])
 def test_false_variadic_signatures(test_input):
     # A '...' is only valid on its own or after a comma-separated argument list
     from pyparsing import ParseException
