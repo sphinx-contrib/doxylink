@@ -77,8 +77,9 @@ argument_type = Opt(attribute) + \
 # Argument + variable name + default
 argument = Group(argument_type('argument_type') + Opt(input_name) + Opt(default_value))
 
-# List of arguments in parentheses with an optional 'const' on the end
-arglist = LPAR + Opt(delimitedList(argument)('arg_list')) + Opt(COMMA) + Opt('...')('var_args') + RPAR
+# List of arguments in parentheses with an optional 'const' on the end. Variadic macros such as `#define MACRO(...)`
+# have no named argument before the '...'.
+arglist = LPAR + (delimitedList(argument)('arg_list') + Opt(COMMA + '...')('var_args') | Literal('...')('var_args')) + RPAR
 
 
 def normalise(symbol: str) -> Tuple[str, str]:

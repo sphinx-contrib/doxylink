@@ -212,6 +212,14 @@ def test_false_signatures():
         parsing.normalise('("center")')
 
 
+@pytest.mark.parametrize('test_input', ['M(x,)', 'M(,)', 'M(, ...)', 'M(..., ...)'])
+def test_false_variadic_signatures(test_input):
+    # A '...' is only valid on its own or after a comma-separated argument list
+    from pyparsing import ParseException
+    with pytest.raises(ParseException):
+        parsing.normalise(test_input)
+
+
 if __name__ == "__main__":
     try:
         import cProfile as profile
