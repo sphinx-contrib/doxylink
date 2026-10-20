@@ -3,7 +3,7 @@ Welcome to sphinxcontrib-doxylink's documentation
 
 Doxylink is a Sphinx extension to link to external Doxygen API documentation.
 
-It allows you to specify C++ symbols and it will convert them into links to the HTML page of their Doxygen documentation.
+It allows you to specify symbols in various programming languages and it will convert them into links to the HTML page of their Doxygen documentation.
 
 .. toctree::
     :hidden:
@@ -20,6 +20,7 @@ You use Doxylink like:
     :polyvox:`PolyVox::Volume`
     You use :qtogre:`QtOgre::Log` to log events for the user.
     :polyvox:`PolyVox::Array::operator[]`
+    :polyvox:`PolyVox.Volume` (Using . or :: separator is equivalent)
 
 Where :rst:role:`polyvox` and :rst:role:`qtogre` roles are defined by the :confval:`doxylink` configuration value.
 
@@ -212,6 +213,15 @@ Configuration values
     For example, you may want to ignore errors related to a specific namespace.
     The regular expression is matched against the error message using Python's
     `re.search <https://docs.python.org/3/library/re.html#re.search>`_ function.
+
+Languages support
+-----------------
+
+Doxylink supports a subset of the programming languages supported by Doxygen. It has been tested with:
+
+* C++
+* C#
+* Python
 
 Bug reports
 -----------
