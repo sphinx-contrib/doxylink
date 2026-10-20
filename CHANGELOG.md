@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `.readthedocs.yaml` and declare `sphinx-rtd-theme` as an optional `doc` dependency; the documentation site's builds were failing silently and serving a stale build that was missing recently documented configuration values [Issue #73]
 - Parse C++11-style attributes (e.g. `[[maybe_unused]]`, `[[deprecated("...")]]`) on function arguments instead of failing to parse the whole signature [Issue #68]
+- Normalise nested template arguments (e.g. `SharedPtr< ControllerValue< T > >`) the same way with every supported pyparsing version; pyparsing 3.3 changed the spacing, which made the test suite fail on the Python versions that resolve it
 
 ### Changed
 
