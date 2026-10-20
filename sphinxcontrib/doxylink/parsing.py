@@ -1,8 +1,8 @@
 from typing import Tuple
 
-from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt, \
+from pyparsing import And, Word, Literal, nums, alphanums, OneOrMore, Opt, \
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString, \
-    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore, Empty, replaceWith
+    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore, Suppress, Empty, replaceWith
 
 # define punctuation - reuse of expressions helps packratting work better
 LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=")
@@ -10,6 +10,9 @@ LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=
 # Qualifier to go in front of type in the argument list (unsigned const int foo)
 qualifier_grouped = OneOrMore(Keyword('const') ^ Keyword('volatile') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
 qualifier = ungroup(qualifier_grouped.addParseAction(' '.join))
+
+# A C++11-style attribute, e.g. '[[maybe_unused]]' or '[[deprecated("reason")]]'. The contents are discarded.
+attribute = Suppress(Literal('[[') + SkipTo(Literal(']]')) + Literal(']]'))
 
 
 def turn_parseresults_to_list(s, loc, toks):
@@ -30,7 +33,11 @@ def normalise_templates(toks):
 
 
 # Skip pairs of brackets.
-angle_bracket_pair = nestedExpr(opener='<', closer='>').setParseAction(turn_parseresults_to_list)
+# `normalise_templates` already recurses into nested brackets, so the parse action must only run on the outermost
+# pair. Attaching it directly to `nestedExpr` made it also run on the inner pairs with pyparsing < 3.3 (where the
+# expression is a self-referencing Forward) but not with >= 3.3, which changed the spacing of nested templates:
+# `A< B < T > >` vs `A< B< T > >`. Wrapping it in `And` keeps the action out of the recursion in all versions.
+angle_bracket_pair = And([nestedExpr(opener='<', closer='>')]).setParseAction(turn_parseresults_to_list)
 # TODO Fix for nesting brackets
 parentheses_pair = LPAR + SkipTo(RPAR) + RPAR
 square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
@@ -56,10 +63,13 @@ pointer_or_reference = pointer | reference
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | curly_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
+# A qualifier only counts as one if a type follows it. Otherwise it is the type itself, e.g. the macro parameters in
+# `#define MACRO(enum)` or `#define MACRO(const)`, which Doxygen reports as the arglist `(enum)` / `(const)`.
 argument_type_prefix = (qualifier("qualifier1") + input_type("input_type").setParseAction(' '.join)) | \
                        (Empty().setParseAction(replaceWith(''))("qualifier1") + input_type("input_type").setParseAction(' '.join))
 
-argument_type = argument_type_prefix + \
+argument_type = Opt(attribute) + \
+                argument_type_prefix + \
                 Opt(qualifier, default='')("qualifier2") + \
                 Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \
                 Opt('...')("parameter_pack")

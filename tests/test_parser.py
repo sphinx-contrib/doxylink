@@ -51,7 +51,10 @@ arglists = [
     ('(STLAllocator< T, P > const &, STLAllocator< T2, P > const &)', ('', '(const STLAllocator< T, P >&, const STLAllocator< T2, P >&)')),
     ('(const String &errorMessage, String logName="")', ('', '(const String&, String)')),
     ('(PixelFormat = PF_BYTE)', ('', '(PixelFormat)')),
-    ('(const SharedPtr< ControllerValue< T > > &src)', ('', '(const SharedPtr< ControllerValue < T > >&)')),
+    ('(const SharedPtr< ControllerValue< T > > &src)', ('', '(const SharedPtr< ControllerValue< T > >&)')),
+    ('(const SharedPtr<ControllerValue<T>>& src)', ('', '(const SharedPtr< ControllerValue< T > >&)')),
+    ('(const Foo< Bar< Baz< T > > > &src)', ('', '(const Foo< Bar< Baz< T > > >&)')),
+    ('(std::map< int, std::vector< int > > m)', ('', '(std::map< int, std::vector< int > >)')),
     ('(typename T::iterator start, typename T::iterator last)', ('', '(typename T::iterator, typename T::iterator)')),
     ('(const Matrix4 *const *blendMatrices)', ('', '(const Matrix4*const*)')),
     ('(const Matrix4 *const *blendMatrices) const =0', ('', '(const Matrix4*const*) const')),
@@ -136,6 +139,16 @@ keywords_almost_in_typenames = [
     ('evolve(quantumdata::StateVector &, const structure::QuantumSystem &, const evolution::Pars &)', ('evolve', '(quantumdata::StateVector&, const structure::QuantumSystem&, const evolution::Pars&)')),
 ]
 
+attributes = [
+    ('([[maybe_unused]] int foo)', ('', '(int)')),
+    ('(int a, [[maybe_unused]] int b)', ('', '(int, int)')),
+    ('([[deprecated("use bar instead")]] const int &foo)', ('', '(const int&)')),
+]
+
+default_brace_init = [
+    ('(const Name &name={}, int lifetime=5)', ('', '(const Name&, int)')),
+]
+
 
 @pytest.mark.parametrize('test_input, expected', functions)
 def test_split_function(test_input, expected):
@@ -179,6 +192,16 @@ def test_multiple_namespaces(test_input, expected):
 
 @pytest.mark.parametrize('test_input, expected', keywords_almost_in_typenames)
 def test_keywords_almost_in_typenames(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', attributes)
+def test_attributes(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', default_brace_init)
+def test_default_brace_init(test_input, expected):
     assert parsing.normalise(test_input) == expected
 
 
