@@ -7,11 +7,10 @@ import time
 import xml.etree.ElementTree as ET
 import urllib.parse
 from collections import namedtuple
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 from dateutil.parser import parse as parsedate
 from docutils import nodes, utils
-from sphinx.util.nodes import split_explicit_title
 from sphinx.util.console import bold, standout  # type: ignore  # These are not explicitly exported as functions
 from sphinx import __version__ as sphinx_version
 
@@ -357,6 +356,23 @@ def parse_tag_file(doc: ET.ElementTree, parse_error_ignore_regexes: Optional[Lis
 
 def join(*args):
     return ''.join(args)
+
+
+# Like Sphinx's `explicit_title_re`, except that the target may itself contain '<' so that
+# templated symbols such as `Array <PolyVox::Array<0,ElementType>>` can be used as targets.
+explicit_title_re = re.compile(r'^(.+?)\s*(?<!\x00)<(.*)>$', re.DOTALL)
+
+
+def split_explicit_title(text: str) -> Tuple[bool, str, str]:
+    '''
+    Split role content into (has_explicit_title, title, target).
+
+    This replaces `sphinx.util.nodes.split_explicit_title`, which does not allow '<' in the target.
+    '''
+    match = explicit_title_re.match(text)
+    if match:
+        return True, match.group(1), match.group(2)
+    return False, text, text
 
 
 def create_role(app, tag_filename, rootdir, cache_name, pdf=""):
