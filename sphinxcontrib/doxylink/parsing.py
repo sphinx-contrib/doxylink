@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Opt, \
+from pyparsing import And, Word, Literal, nums, alphanums, OneOrMore, Opt, \
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString, \
     nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore, Suppress
 
@@ -43,7 +43,11 @@ def normalise_templates(toks):
 
 
 # Skip pairs of brackets.
-angle_bracket_pair = nestedExpr(opener='<', closer='>').setParseAction(turn_parseresults_to_list)
+# `normalise_templates` already recurses into nested brackets, so the parse action must only run on the outermost
+# pair. Attaching it directly to `nestedExpr` made it also run on the inner pairs with pyparsing < 3.3 (where the
+# expression is a self-referencing Forward) but not with >= 3.3, which changed the spacing of nested templates:
+# `A< B < T > >` vs `A< B< T > >`. Wrapping it in `And` keeps the action out of the recursion in all versions.
+angle_bracket_pair = And([nestedExpr(opener='<', closer='>')]).setParseAction(turn_parseresults_to_list)
 # TODO Fix for nesting brackets
 parentheses_pair = LPAR + SkipTo(RPAR) + RPAR
 square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
