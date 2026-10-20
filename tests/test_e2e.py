@@ -1,10 +1,13 @@
-import os
+from html.parser import HTMLParser
 from pathlib import Path
 import pytest
+import shutil
 import subprocess
 import sys
-import re
-from typing import Iterable
+from typing import Iterable, List, Optional, Tuple
+
+# These tests run a real Doxygen, so skip them where it isn't installed.
+pytestmark = pytest.mark.skipif(shutil.which("doxygen") is None, reason="doxygen is not installed")
 
 _CXX_SOURCE = """
 namespace primary {
@@ -94,7 +97,7 @@ _CXX_NAMES = (
     ("primary", "FunctionTemplate"),
     ("primary", "variable_template"),
     ("primary", "ambiguous_var"),
-    ("secondary", "TestFunction"),
+    ("secondary", "AmbiguousFunction"),
     ("secondary", "ambiguous_var"),
     (None, "SIMPLE_MACRO"),
     (None, "FUNCTION_LIKE_MACRO_1"),
@@ -170,6 +173,30 @@ master_doc = 'index'
     return docs_dir
 
 
+class _LinkCollector(HTMLParser):
+    """Collects the (href, text) of every Doxylink link in a page."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.links: List[Tuple[str, str]] = []
+        self._current: Optional[List[str]] = None
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        if tag == "a":
+            attributes = dict(attrs)
+            if "doxylink" in (attributes.get("class") or "").split():
+                self._current = [attributes.get("href") or "", ""]
+
+    def handle_data(self, data: str) -> None:
+        if self._current is not None:
+            self._current[1] += data
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "a" and self._current is not None:
+            self.links.append((self._current[0], self._current[1]))
+            self._current = None
+
+
 def run_sphinx(
     docs_dir: Path,
     out_dir: Path,
@@ -202,19 +229,20 @@ def test_doxylink_valid_links(doxylink_setup: Path) -> None:
 
     # Run Sphinx
     build_dir = docs_dir / "_build"
-    run_sphinx(docs_dir, build_dir / "html")
+    result = run_sphinx(docs_dir, build_dir / "html")
+
+    # An unresolved symbol is only a warning and is rendered as plain text
+    assert "Could not find match" not in result.stderr, result.stderr
 
     # Verify generated HTML
     index_html = build_dir / "html" / "index.html"
-    content = index_html.read_text(encoding="utf-8")
+    collector = _LinkCollector()
+    collector.feed(index_html.read_text(encoding="utf-8"))
 
-    # Helper to verify link exists
-    def verify_link(text: str, symbol: str) -> None:
-        # Look for <a ... href="...doxygen_out/html/..." ...>...symbol...</a>
-        pattern = rf'<a\s+[^>]*href="[^"]*doxygen_out/html/[^"]*"[^>]*>.*?{re.escape(symbol)}.*?</a>'
-        assert re.search(
-            pattern, text, re.DOTALL
-        ), f"Could not find link for symbol '{symbol}'"
-
+    # The text of a link is the symbol as written, plus "()" for functions. It has to match exactly: a link to
+    # "primary::TestClass::method()" must not count as a link to "primary::TestClass".
     for ns, name in _CXX_NAMES:
-        verify_link(content, name)
+        qualified_name = f"{ns}::{name}" if ns else name
+        hrefs = [href for href, text in collector.links if text in (qualified_name, f"{qualified_name}()")]
+        assert hrefs, f"Could not find link for symbol '{qualified_name}'"
+        assert all("doxygen_out/html/" in href for href in hrefs), hrefs
