@@ -7,6 +7,13 @@ import pstats
 # List of tuples of: (input, correct output)
 # Input is a string, output is a tuple.
 arglists = [
+    ('(enum)', ('', '(enum)')),
+    ('(const)', ('', '(const)')),
+    # macro parameters named like the C# 'ref'/'out'/'in' modifiers
+    ('(in)', ('', '(in)')),
+    ('(out)', ('', '(out)')),
+    ('(ref)', ('', '(ref)')),
+    ('(in, out)', ('', '(in, out)')),
     ('( QUrl source )', ('', '(QUrl)')),
     ('( QUrl * source )', ('', '(QUrl*)')),
     ('( QUrl ** source )', ('', '(QUrl**)')),
@@ -65,6 +72,8 @@ varargs = [
     ('fprintf( std::FILE* stream, const char* format, ... )', ('fprintf', '(std::FILE*, const char*, ...)')),
     ('sprintf( char* buffer, const char* format, ... )', ('sprintf', '(char*, const char*, ...)')),
     ('snprintf( char* buffer, std::size_t buf_size, const char* format, ... )', ('snprintf', '(char*, std::size_t, const char*, ...)')),
+    ('MACRO(...)', ('MACRO', '(...)')),
+    ('(...)', ('', '(...)')),
 ]
 
 multiple_qualifiers = [
@@ -251,6 +260,14 @@ def test_false_signatures():
     from pyparsing import ParseException
     with pytest.raises(ParseException):
         parsing.normalise('("center")')
+
+
+@pytest.mark.parametrize('test_input', ['M(x,)', 'M(,)', 'M(, ...)', 'M(..., ...)', 'M(.)', 'M(..)'])
+def test_false_variadic_signatures(test_input):
+    # A '...' is only valid on its own or after a comma-separated argument list
+    from pyparsing import ParseException
+    with pytest.raises(ParseException):
+        parsing.normalise(test_input)
 
 
 if __name__ == "__main__":

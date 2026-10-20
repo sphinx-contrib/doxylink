@@ -2,7 +2,7 @@ from typing import Tuple
 
 from pyparsing import And, Word, Literal, nums, alphanums, OneOrMore, Opt, \
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString, \
-    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore, Suppress
+    nestedExpr, ParseResults, oneOf, ungroup, Keyword, ZeroOrMore, Suppress, Empty, replaceWith
 
 # define punctuation - reuse of expressions helps packratting work better
 LPAR, RPAR, LBRACK, RBRACK, LCBRACK, RCBRACK, COMMA, EQ = map(Literal, "()[]{},=")
@@ -54,7 +54,9 @@ square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
 curly_bracket_pair = LCBRACK + SkipTo(RCBRACK) + RCBRACK
 
 # TODO I guess this should be a delimited list (by '::') of name and angle brackets
-nonfundamental_input_type = Combine(Word(alphanums + ':_.|') + Opt(angle_bracket_pair + Opt(Word(alphanums + ':_.|'))))
+# '.' (C# and Python scopes) and '|' (Python unions) may only appear after the first character, so that the '...' of a
+# variadic argument list is not mistaken for a type name.
+nonfundamental_input_type = Combine(Word(alphanums + ':_', alphanums + ':_.|') + Opt(angle_bracket_pair + Opt(Word(alphanums + ':_.|'))))
 fundamental_input_type = OneOrMore(Keyword('bool') ^ Keyword('short') ^ Keyword('int') ^ Keyword('long') ^ Keyword('signed') ^ Keyword('unsigned') ^ Keyword('char') ^ Keyword('float') ^ Keyword('double'))
 input_type = fundamental_input_type ^ nonfundamental_input_type
 
@@ -73,9 +75,13 @@ pointer_or_reference = pointer | reference
 default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | curly_bracket_pair | Word('|&^'))
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
+# A qualifier only counts as one if a type follows it. Otherwise it is the type itself, e.g. the macro parameters in
+# `#define MACRO(enum)` or `#define MACRO(in)`, which Doxygen reports as the arglist `(enum)` / `(in)`.
+argument_type_prefix = (prefix_qualifier("qualifier1") + input_type("input_type").setParseAction(' '.join)) | \
+                       (Empty().setParseAction(replaceWith(''))("qualifier1") + input_type("input_type").setParseAction(' '.join))
+
 argument_type = Opt(attribute) + \
-                Opt(prefix_qualifier, default='')("qualifier1") + \
-                input_type("input_type").setParseAction(' '.join) + \
+                argument_type_prefix + \
                 Opt(qualifier, default='')("qualifier2") + \
                 Group(ZeroOrMore(pointer_or_reference))("pointer_or_references") + \
                 Opt('...')("parameter_pack")
@@ -96,8 +102,9 @@ argument = Group(
     | star_arg("input_type")
 )
 
-# List of arguments in parentheses with an optional 'const' on the end
-arglist = LPAR + delimitedList(argument)('arg_list') + Opt(COMMA + '...')('var_args') + RPAR
+# List of arguments in parentheses with an optional 'const' on the end. Variadic macros such as `#define MACRO(...)`
+# have no named argument before the '...'.
+arglist = LPAR + (delimitedList(argument)('arg_list') + Opt(COMMA + '...')('var_args') | Literal('...')('var_args')) + RPAR
 
 
 def normalise(symbol: str) -> Tuple[str, str]:
