@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Add `.readthedocs.yaml` and declare `sphinx-rtd-theme` as an optional `doc` dependency; the documentation site's builds were failing silently and serving a stale build that was missing recently documented configuration values [Issue #73]
+- Allow templated symbols inside the angle brackets of an explicit title, e.g. ``:polyvox:`Array <PolyVox::Array<0,ElementType>>` ``, as the documentation already promised [Issue #48]
 - Parse C++11-style attributes (e.g. `[[maybe_unused]]`, `[[deprecated("...")]]`) on function arguments instead of failing to parse the whole signature [Issue #68]
 
 ### Changed

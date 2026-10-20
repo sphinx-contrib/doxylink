@@ -331,6 +331,55 @@ def test_create_role_adds_doxylink_css_class():
     assert pnodes[0]['classes'] == ['doxylink']
 
 
+@pytest.mark.parametrize('text, expected', [
+    ('foo', (False, 'foo', 'foo')),
+    ('Foo <bar>', (True, 'Foo', 'bar')),
+    ('Foo <PolyVox::Array<0,ElementType>>', (True, 'Foo', 'PolyVox::Array<0,ElementType>')),
+    ('Foo <ns::Map<int, std::vector<int>>>', (True, 'Foo', 'ns::Map<int, std::vector<int>>')),
+    ('Foo <ns::Array<0,T>::method(int)>', (True, 'Foo', 'ns::Array<0,T>::method(int)')),
+    ('PolyVox::Array\x00<0,ElementType>', (False, 'PolyVox::Array\x00<0,ElementType>', 'PolyVox::Array\x00<0,ElementType>')),  # escaped '<'
+])
+def test_split_explicit_title(text, expected):
+    assert doxylink.split_explicit_title(text) == expected
+
+
+def test_create_role_explicit_title_with_template_target():
+    symbol = 'PolyVox::Array<0,ElementType>'
+    entry = MagicMock()
+    entry.file = 'foo.html'
+    entry.kind = 'class'
+
+    tag_filename = __file__  # any existing file; the cache is seeded as up to date so it is never parsed
+    cache_name = 'doxylink_template_title_test'
+
+    class FakeEnv:
+        pass
+
+    env = FakeEnv()
+    env.doxylink_cache = {
+        cache_name: {
+            'mapping': {symbol: entry},
+            'mtime': os.path.getmtime(tag_filename),
+            'version': doxylink.__version__,
+        }
+    }
+
+    app = MagicMock()
+    app.env = env
+    app.config.doxylink_parse_error_ignore_regexes = []
+    app.config.add_function_parentheses = True
+
+    role = doxylink.create_role(app, tag_filename, 'https://example.com', cache_name)
+
+    text = f'Array <{symbol}>'
+    pnodes, messages = role('cpp:doxylink', f':cpp:doxylink:`{text}`', text, 1, MagicMock())
+
+    assert messages == []
+    assert len(pnodes) == 1
+    assert pnodes[0].astext() == 'Array'
+    assert pnodes[0]['refuri'] == 'https://example.com/foo.html'
+
+
 @pytest.mark.parametrize('symbol, expected_file', [
     ('adc.c', None),  # ambiguous: could be either file, don't care which one wins
     ('src/bsp/drv/adc.c', 'bsp_drv_adc_8c.html'),
